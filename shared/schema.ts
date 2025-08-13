@@ -45,15 +45,15 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const tweets = pgTable("tweets", {
+export const posts = pgTable("posts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   authorId: varchar("author_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
   imageUrl: varchar("image_url"),
-  replyToId: varchar("reply_to_id").references(() => tweets.id, { onDelete: "cascade" }),
-  retweetOfId: varchar("retweet_of_id").references(() => tweets.id, { onDelete: "cascade" }),
+  replyToId: varchar("reply_to_id").references((): any => posts.id, { onDelete: "cascade" }),
+  shareOfId: varchar("share_of_id").references((): any => posts.id, { onDelete: "cascade" }),
   likesCount: integer("likes_count").default(0),
-  retweetsCount: integer("retweets_count").default(0),
+  sharesCount: integer("shares_count").default(0),
   repliesCount: integer("replies_count").default(0),
   isThread: boolean("is_thread").default(false),
   threadOrder: integer("thread_order").default(0),
@@ -77,23 +77,23 @@ export const likes = pgTable(
   "likes",
   {
     userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-    tweetId: varchar("tweet_id").notNull().references(() => tweets.id, { onDelete: "cascade" }),
+    postId: varchar("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow(),
   },
   (table) => ({
-    pk: primaryKey({ columns: [table.userId, table.tweetId] }),
+    pk: primaryKey({ columns: [table.userId, table.postId] }),
   }),
 );
 
-export const retweets = pgTable(
-  "retweets",
+export const shares = pgTable(
+  "shares",
   {
     userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-    tweetId: varchar("tweet_id").notNull().references(() => tweets.id, { onDelete: "cascade" }),
+    postId: varchar("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow(),
   },
   (table) => ({
-    pk: primaryKey({ columns: [table.userId, table.tweetId] }),
+    pk: primaryKey({ columns: [table.userId, table.postId] }),
   }),
 );
 
@@ -101,8 +101,8 @@ export const notifications = pgTable("notifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   fromUserId: varchar("from_user_id").references(() => users.id, { onDelete: "cascade" }),
-  type: varchar("type").notNull(), // 'like', 'retweet', 'follow', 'reply', 'mention'
-  tweetId: varchar("tweet_id").references(() => tweets.id, { onDelete: "cascade" }),
+  type: varchar("type").notNull(), // 'like', 'share', 'follow', 'reply', 'mention'
+  postId: varchar("post_id").references(() => posts.id, { onDelete: "cascade" }),
   message: text("message").notNull(),
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
@@ -110,33 +110,33 @@ export const notifications = pgTable("notifications", {
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
-  tweets: many(tweets),
+  posts: many(posts),
   likes: many(likes),
-  retweets: many(retweets),
+  shares: many(shares),
   following: many(follows, { relationName: "follower" }),
   followers: many(follows, { relationName: "following" }),
   notifications: many(notifications),
 }));
 
-export const tweetsRelations = relations(tweets, ({ one, many }) => ({
+export const postsRelations = relations(posts, ({ one, many }) => ({
   author: one(users, {
-    fields: [tweets.authorId],
+    fields: [posts.authorId],
     references: [users.id],
   }),
-  replyTo: one(tweets, {
-    fields: [tweets.replyToId],
-    references: [tweets.id],
+  replyTo: one(posts, {
+    fields: [posts.replyToId],
+    references: [posts.id],
     relationName: "replies",
   }),
-  retweetOf: one(tweets, {
-    fields: [tweets.retweetOfId],
-    references: [tweets.id],
-    relationName: "retweets",
+  shareOf: one(posts, {
+    fields: [posts.shareOfId],
+    references: [posts.id],
+    relationName: "shares",
   }),
-  replies: many(tweets, { relationName: "replies" }),
-  retweets: many(tweets, { relationName: "retweets" }),
+  replies: many(posts, { relationName: "replies" }),
+  sharedPosts: many(posts, { relationName: "shares" }),
   likes: many(likes),
-  userRetweets: many(retweets),
+  userShares: many(shares),
 }));
 
 export const followsRelations = relations(follows, ({ one }) => ({
@@ -157,20 +157,20 @@ export const likesRelations = relations(likes, ({ one }) => ({
     fields: [likes.userId],
     references: [users.id],
   }),
-  tweet: one(tweets, {
-    fields: [likes.tweetId],
-    references: [tweets.id],
+  post: one(posts, {
+    fields: [likes.postId],
+    references: [posts.id],
   }),
 }));
 
-export const retweetsRelations = relations(retweets, ({ one }) => ({
+export const sharesRelations = relations(shares, ({ one }) => ({
   user: one(users, {
-    fields: [retweets.userId],
+    fields: [shares.userId],
     references: [users.id],
   }),
-  tweet: one(tweets, {
-    fields: [retweets.tweetId],
-    references: [tweets.id],
+  post: one(posts, {
+    fields: [shares.postId],
+    references: [posts.id],
   }),
 }));
 
@@ -183,9 +183,9 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
     fields: [notifications.fromUserId],
     references: [users.id],
   }),
-  tweet: one(tweets, {
-    fields: [notifications.tweetId],
-    references: [tweets.id],
+  post: one(posts, {
+    fields: [notifications.postId],
+    references: [posts.id],
   }),
 }));
 
@@ -196,15 +196,15 @@ export const insertUserSchema = createInsertSchema(users).omit({
   updatedAt: true,
 });
 
-export const insertTweetSchema = createInsertSchema(tweets).omit({
+export const insertPostSchema = createInsertSchema(posts).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
   likesCount: true,
-  retweetsCount: true,
+  sharesCount: true,
   repliesCount: true,
 }).extend({
-  content: z.string().min(1).max(280),
+  content: z.string().min(1).max(500), // Longer limit for plant care posts
 });
 
 export const insertFollowSchema = createInsertSchema(follows).omit({
@@ -219,11 +219,11 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
-export type InsertTweet = z.infer<typeof insertTweetSchema>;
-export type Tweet = typeof tweets.$inferSelect;
-export type TweetWithAuthor = Tweet & { author: User; isLiked?: boolean; isRetweeted?: boolean };
+export type InsertPost = z.infer<typeof insertPostSchema>;
+export type Post = typeof posts.$inferSelect;
+export type PostWithAuthor = Post & { author: User; isLiked?: boolean; isShared?: boolean };
 export type Follow = typeof follows.$inferSelect;
 export type Like = typeof likes.$inferSelect;
-export type Retweet = typeof retweets.$inferSelect;
+export type Share = typeof shares.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;

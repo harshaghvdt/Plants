@@ -1,6 +1,6 @@
 # Overview
 
-This is a full-stack Twitter clone application built with React, TypeScript, and Express.js. The application provides core social media functionality including user authentication, tweeting, following/unfollowing users, likes, retweets, and real-time updates. It features a responsive design with both desktop and mobile interfaces, implementing Twitter-like UI patterns and user interactions.
+This is PlantLife - a full-stack plant social network application built with React, TypeScript, and Express.js. Originally a Twitter clone, it has been completely transformed into a botanical community platform where plant enthusiasts share care experiences, growth stories, and cultivate knowledge together. The application features Material Design 3's expressive design language with a nature-inspired botanical theme, avoiding copyright issues while providing an authentic plant community experience.
 
 # User Preferences
 
@@ -24,10 +24,11 @@ Preferred communication style: Simple, everyday language.
 - **WebSocket Server**: Real-time bidirectional communication for live updates
 
 ## Database & ORM
-- **Database**: PostgreSQL with Neon serverless driver for cloud deployment
+- **Database**: PostgreSQL with Neon serverless driver for cloud deployment  
 - **ORM**: Drizzle ORM with TypeScript schema definitions for type-safe database operations
-- **Schema**: Comprehensive social media schema including users, tweets, follows, likes, retweets, and notifications tables
+- **Schema**: Plant community schema including users, posts (formerly tweets), follows, likes, shares (formerly retweets), and notifications tables
 - **Migrations**: Drizzle Kit for database schema migrations and management
+- **Schema Transformation**: Successfully migrated from Twitter terminology (tweets, retweets) to plant terminology (posts, shares)
 
 ## Authentication & Sessions
 - **Authentication Provider**: Replit Auth using OpenID Connect (OIDC) for secure user authentication

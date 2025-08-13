@@ -1,116 +1,115 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,100;0,9..40,200;0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,100;1,9..40,200;1,9..40,300;1,9..40,400;1,9..40,500;1,9..40,600;1,9..40,700;1,9..40,800;1,9..40,900&family=Comfortaa:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(210 25% 7.8431%);
-  --card: hsl(180 6.6667% 97.0588%);
-  --card-foreground: hsl(210 25% 7.8431%);
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(210 25% 7.8431%);
-  --primary: hsl(203.8863 88.2845% 53.1373%);
+  /* Material Design 3 Botanical Green Palette */
+  --background: hsl(108 30% 97%);
+  --foreground: hsl(158 40% 12%);
+  --card: hsl(110 35% 95%);
+  --card-foreground: hsl(158 40% 15%);
+  --popover: hsl(110 35% 95%);
+  --popover-foreground: hsl(158 40% 15%);
+  --primary: hsl(142 76% 36%); /* Rich forest green */
   --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(210 25% 7.8431%);
-  --secondary-foreground: hsl(0 0% 100%);
-  --muted: hsl(240 1.9608% 90%);
-  --muted-foreground: hsl(210 25% 7.8431%);
-  --accent: hsl(211.5789 51.3514% 92.7451%);
-  --accent-foreground: hsl(203.8863 88.2845% 53.1373%);
-  --destructive: hsl(356.3033 90.5579% 54.3137%);
+  --secondary: hsl(87 50% 88%); /* Light sage green */
+  --secondary-foreground: hsl(158 40% 20%);
+  --muted: hsl(108 25% 92%);
+  --muted-foreground: hsl(158 20% 45%);
+  --accent: hsl(78 60% 85%); /* Mint green */
+  --accent-foreground: hsl(158 50% 25%);
+  --destructive: hsl(0 84% 60%);
   --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(201.4286 30.4348% 90.9804%);
-  --input: hsl(200 23.0769% 97.4510%);
-  --ring: hsl(202.8169 89.1213% 53.1373%);
-  --chart-1: hsl(203.8863 88.2845% 53.1373%);
-  --chart-2: hsl(159.7826 100% 36.0784%);
-  --chart-3: hsl(42.0290 92.8251% 56.2745%);
-  --chart-4: hsl(147.1429 78.5047% 41.9608%);
-  --chart-5: hsl(341.4894 75.2000% 50.9804%);
-  --sidebar: hsl(180 6.6667% 97.0588%);
-  --sidebar-foreground: hsl(210 25% 7.8431%);
-  --sidebar-primary: hsl(203.8863 88.2845% 53.1373%);
+  --border: hsl(108 20% 88%);
+  --input: hsl(108 20% 88%);
+  --ring: hsl(142 76% 36%);
+  --radius: 12px;
+  
+  /* Plant-themed colors */
+  --leaf-primary: hsl(142 76% 36%);
+  --leaf-secondary: hsl(87 50% 78%);
+  --earth-brown: hsl(28 45% 65%);
+  --flower-purple: hsl(280 50% 70%);
+  --sun-yellow: hsl(45 90% 75%);
+  --sky-blue: hsl(200 70% 80%);
+  
+  /* Sidebar colors */
+  --sidebar: hsl(110 35% 95%);
+  --sidebar-foreground: hsl(158 40% 15%);
+  --sidebar-primary: hsl(142 76% 36%);
   --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(211.5789 51.3514% 92.7451%);
-  --sidebar-accent-foreground: hsl(203.8863 88.2845% 53.1373%);
-  --sidebar-border: hsl(205.0000 25.0000% 90.5882%);
-  --sidebar-ring: hsl(202.8169 89.1213% 53.1373%);
-  --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --sidebar-accent: hsl(78 60% 85%);
+  --sidebar-accent-foreground: hsl(158 50% 25%);
+  --sidebar-border: hsl(108 20% 88%);
+  --sidebar-ring: hsl(142 76% 36%);
+  
+  /* Typography */
+  --font-sans: 'DM Sans', 'Inter', system-ui, -apple-system, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
-  --radius: 1.3rem;
-  --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-md: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 2px 4px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-lg: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 4px 6px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 8px 10px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-2xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --tracking-normal: 0em;
-  --spacing: 0.25rem;
+  --font-organic: 'Comfortaa', cursive;
   
-  /* Twitter-specific color variables */
-  --twitter-blue: hsl(203 89% 53%);
-  --twitter-dark-blue: hsl(202 89% 48%);
-  --twitter-light-gray: hsl(210 20% 97%);
-  --twitter-dark-gray: hsl(210 24% 8%);
-  --twitter-border: hsl(205 29% 91%);
+  /* Shadows */
+  --shadow-2xs: 0px 1px 2px 0px hsl(142 76% 36% / 0.05);
+  --shadow-xs: 0px 1px 3px 0px hsl(142 76% 36% / 0.10);
+  --shadow-sm: 0px 1px 2px 0px hsl(142 76% 36% / 0.05), 0px 2px 4px 0px hsl(142 76% 36% / 0.10);
+  --shadow: 0px 1px 3px 0px hsl(142 76% 36% / 0.12), 0px 1px 2px 0px hsl(142 76% 36% / 0.24);
+  --shadow-md: 0px 4px 6px -1px hsl(142 76% 36% / 0.10), 0px 2px 4px -1px hsl(142 76% 36% / 0.06);
+  --shadow-lg: 0px 10px 15px -3px hsl(142 76% 36% / 0.10), 0px 4px 6px -2px hsl(142 76% 36% / 0.05);
+  --shadow-xl: 0px 20px 25px -5px hsl(142 76% 36% / 0.10), 0px 10px 10px -5px hsl(142 76% 36% / 0.04);
+  --shadow-2xl: 0px 25px 50px -12px hsl(142 76% 36% / 0.25);
 }
 
 .dark {
-  --background: hsl(0 0% 0%);
-  --foreground: hsl(200 6.6667% 91.1765%);
-  --card: hsl(228 9.8039% 10%);
-  --card-foreground: hsl(0 0% 85.0980%);
-  --popover: hsl(0 0% 0%);
-  --popover-foreground: hsl(200 6.6667% 91.1765%);
-  --primary: hsl(203.7736 87.6033% 52.5490%);
-  --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(195.0000 15.3846% 94.9020%);
-  --secondary-foreground: hsl(210 25% 7.8431%);
-  --muted: hsl(0 0% 9.4118%);
-  --muted-foreground: hsl(210 3.3898% 46.2745%);
-  --accent: hsl(205.7143 70% 7.8431%);
-  --accent-foreground: hsl(203.7736 87.6033% 52.5490%);
-  --destructive: hsl(356.3033 90.5579% 54.3137%);
+  --background: hsl(158 25% 8%);
+  --foreground: hsl(108 30% 95%);
+  --card: hsl(158 30% 10%);
+  --card-foreground: hsl(108 30% 90%);
+  --popover: hsl(158 30% 10%);
+  --popover-foreground: hsl(108 30% 90%);
+  --primary: hsl(142 70% 45%); /* Brighter forest green for dark mode */
+  --primary-foreground: hsl(158 25% 8%);
+  --secondary: hsl(158 25% 15%);
+  --secondary-foreground: hsl(108 30% 85%);
+  --muted: hsl(158 20% 15%);
+  --muted-foreground: hsl(108 15% 65%);
+  --accent: hsl(87 40% 25%);
+  --accent-foreground: hsl(108 30% 85%);
+  --destructive: hsl(0 75% 55%);
   --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(210 5.2632% 14.9020%);
-  --input: hsl(207.6923 27.6596% 18.4314%);
-  --ring: hsl(202.8169 89.1213% 53.1373%);
-  --chart-1: hsl(203.8863 88.2845% 53.1373%);
-  --chart-2: hsl(159.7826 100% 36.0784%);
-  --chart-3: hsl(42.0290 92.8251% 56.2745%);
-  --chart-4: hsl(147.1429 78.5047% 41.9608%);
-  --chart-5: hsl(341.4894 75.2000% 50.9804%);
-  --sidebar: hsl(228 9.8039% 10%);
-  --sidebar-foreground: hsl(0 0% 85.0980%);
-  --sidebar-primary: hsl(202.8169 89.1213% 53.1373%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(205.7143 70% 7.8431%);
-  --sidebar-accent-foreground: hsl(203.7736 87.6033% 52.5490%);
-  --sidebar-border: hsl(205.7143 15.7895% 26.0784%);
-  --sidebar-ring: hsl(202.8169 89.1213% 53.1373%);
-  --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  --font-serif: Georgia, serif;
-  --font-mono: Menlo, monospace;
-  --radius: 1.3rem;
-  --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-md: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 2px 4px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-lg: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 4px 6px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 8px 10px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-2xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --border: hsl(158 20% 18%);
+  --input: hsl(158 20% 18%);
+  --ring: hsl(142 70% 45%);
   
-  /* Twitter-specific color variables for dark mode */
-  --twitter-blue: hsl(203 89% 53%);
-  --twitter-dark-blue: hsl(202 89% 48%);
-  --twitter-light-gray: hsl(210 20% 15%);
-  --twitter-dark-gray: hsl(210 24% 90%);
-  --twitter-border: hsl(205 29% 20%);
+  /* Dark mode plant colors */
+  --leaf-primary: hsl(142 70% 45%);
+  --leaf-secondary: hsl(87 40% 35%);
+  --earth-brown: hsl(28 35% 45%);
+  --flower-purple: hsl(280 40% 60%);
+  --sun-yellow: hsl(45 80% 65%);
+  --sky-blue: hsl(200 60% 70%);
+  
+  /* Dark sidebar colors */
+  --sidebar: hsl(158 30% 10%);
+  --sidebar-foreground: hsl(108 30% 90%);
+  --sidebar-primary: hsl(142 70% 45%);
+  --sidebar-primary-foreground: hsl(158 25% 8%);
+  --sidebar-accent: hsl(87 40% 25%);
+  --sidebar-accent-foreground: hsl(108 30% 85%);
+  --sidebar-border: hsl(158 20% 18%);
+  --sidebar-ring: hsl(142 70% 45%);
+  
+  /* Dark shadows */
+  --shadow-2xs: 0px 1px 2px 0px hsl(142 70% 45% / 0.10);
+  --shadow-xs: 0px 1px 3px 0px hsl(142 70% 45% / 0.15);
+  --shadow-sm: 0px 1px 2px 0px hsl(142 70% 45% / 0.10), 0px 2px 4px 0px hsl(142 70% 45% / 0.15);
+  --shadow: 0px 1px 3px 0px hsl(142 70% 45% / 0.20), 0px 1px 2px 0px hsl(142 70% 45% / 0.30);
+  --shadow-md: 0px 4px 6px -1px hsl(142 70% 45% / 0.15), 0px 2px 4px -1px hsl(142 70% 45% / 0.10);
+  --shadow-lg: 0px 10px 15px -3px hsl(142 70% 45% / 0.15), 0px 4px 6px -2px hsl(142 70% 45% / 0.08);
+  --shadow-xl: 0px 20px 25px -5px hsl(142 70% 45% / 0.15), 0px 10px 10px -5px hsl(142 70% 45% / 0.08);
+  --shadow-2xl: 0px 25px 50px -12px hsl(142 70% 45% / 0.35);
 }
 
 @layer base {
@@ -119,68 +118,154 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: var(--font-sans);
+  }
+  
+  /* Custom botanical animations */
+  @keyframes gentle-sway {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(2deg); }
+  }
+  
+  @keyframes bloom {
+    0% { transform: scale(0.8) rotate(-10deg); opacity: 0.7; }
+    50% { transform: scale(1.05) rotate(5deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+  
+  @keyframes grow {
+    0% { transform: scaleY(0); transform-origin: bottom; }
+    100% { transform: scaleY(1); transform-origin: bottom; }
+  }
+  
+  @keyframes leaf-rustle {
+    0%, 100% { transform: translateX(0px) rotate(0deg); }
+    25% { transform: translateX(1px) rotate(1deg); }
+    75% { transform: translateX(-1px) rotate(-1deg); }
   }
 }
 
-/* Twitter-specific utility classes */
+/* Botanical utility classes */
 @layer utilities {
-  .text-twitter-blue {
-    color: var(--twitter-blue);
+  .botanical-sway {
+    animation: gentle-sway 3s ease-in-out infinite;
   }
   
-  .text-twitter-dark-blue {
-    color: var(--twitter-dark-blue);
+  .botanical-bloom {
+    animation: bloom 0.6s ease-out forwards;
   }
   
-  .text-twitter-dark-gray {
-    color: var(--twitter-dark-gray);
+  .botanical-grow {
+    animation: grow 0.8s ease-out forwards;
   }
   
-  .bg-twitter-blue {
-    background-color: var(--twitter-blue);
+  .botanical-rustle {
+    animation: leaf-rustle 2s ease-in-out infinite;
   }
   
-  .bg-twitter-dark-blue {
-    background-color: var(--twitter-dark-blue);
+  .text-leaf-primary {
+    color: var(--leaf-primary);
   }
   
-  .bg-twitter-light-gray {
-    background-color: var(--twitter-light-gray);
+  .text-leaf-secondary {
+    color: var(--leaf-secondary);
   }
   
-  .bg-twitter-dark-gray {
-    background-color: var(--twitter-dark-gray);
+  .text-earth-brown {
+    color: var(--earth-brown);
   }
   
-  .border-twitter-border {
-    border-color: var(--twitter-border);
+  .text-flower-purple {
+    color: var(--flower-purple);
   }
   
-  .hover\:bg-twitter-dark-blue:hover {
-    background-color: var(--twitter-dark-blue);
+  .text-sun-yellow {
+    color: var(--sun-yellow);
   }
   
-  .hover\:bg-twitter-light-gray:hover {
-    background-color: var(--twitter-light-gray);
+  .text-sky-blue {
+    color: var(--sky-blue);
+  }
+  
+  .bg-leaf-primary {
+    background-color: var(--leaf-primary);
+  }
+  
+  .bg-leaf-secondary {
+    background-color: var(--leaf-secondary);
+  }
+  
+  .bg-earth-brown {
+    background-color: var(--earth-brown);
+  }
+  
+  .bg-flower-purple {
+    background-color: var(--flower-purple);
+  }
+  
+  .bg-sun-yellow {
+    background-color: var(--sun-yellow);
+  }
+  
+  .bg-sky-blue {
+    background-color: var(--sky-blue);
+  }
+  
+  /* Nature-inspired typography */
+  .heading-organic {
+    font-family: var(--font-organic);
+    font-weight: 600;
+  }
+  
+  .text-botanical {
+    font-family: var(--font-sans);
+    font-weight: 400;
   }
 }
 
-/* Custom animations and transitions */
+/* Custom components for botanical theme */
 @layer components {
-  .tweet-card {
-    transition: background-color 0.2s ease-in-out;
+  .post-card {
+    @apply bg-card border border-border rounded-3xl p-6 transition-all duration-300 hover:shadow-md;
+    background: linear-gradient(135deg, var(--card) 0%, hsl(var(--card) / 0.95) 100%);
   }
   
-  .tweet-card:hover {
-    background-color: var(--twitter-light-gray);
+  .post-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
   }
   
-  .hover-scale {
-    transition: transform 0.2s ease-in-out;
+  .nature-button {
+    @apply bg-primary text-primary-foreground px-6 py-3 rounded-full font-medium;
+    @apply transition-all duration-200 hover:scale-105 active:scale-95;
+    background: linear-gradient(135deg, var(--primary) 0%, hsl(var(--primary) / 0.9) 100%);
+    box-shadow: var(--shadow-sm);
   }
   
-  .hover-scale:hover {
-    transform: scale(1.02);
+  .nature-button:hover {
+    box-shadow: var(--shadow-md);
+  }
+  
+  .plant-icon {
+    @apply text-leaf-primary transition-colors duration-200;
+  }
+  
+  .plant-icon:hover {
+    @apply text-leaf-secondary botanical-sway;
+  }
+  
+  .botanical-gradient {
+    background: linear-gradient(135deg, 
+      hsl(142 76% 36%) 0%, 
+      hsl(87 50% 78%) 50%, 
+      hsl(78 60% 85%) 100%);
+  }
+  
+  .earth-gradient {
+    background: linear-gradient(135deg, 
+      hsl(28 45% 65%) 0%, 
+      hsl(35 50% 70%) 50%, 
+      hsl(45 90% 75%) 100%);
   }
 }
