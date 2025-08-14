@@ -15,6 +15,7 @@ app.use(cors({
     : ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true,
 }));
+// JSON parsing with better error handling
 app.use(express.json());
 app.use(cookieParser());
 

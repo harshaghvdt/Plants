@@ -2,8 +2,21 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    let errorText: string;
+    const contentType = res.headers.get('content-type');
+    
+    if (contentType?.includes('application/json')) {
+      try {
+        const errorData = await res.json();
+        errorText = errorData.message || JSON.stringify(errorData);
+      } catch {
+        errorText = await res.text() || res.statusText;
+      }
+    } else {
+      errorText = await res.text() || res.statusText;
+    }
+    
+    throw new Error(`${res.status}: ${errorText}`);
   }
 }
 
@@ -38,6 +51,14 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
+    
+    // Check if response is actually JSON
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await res.text();
+      throw new Error(`Expected JSON response but got ${contentType}: ${text.substring(0, 100)}`);
+    }
+    
     return await res.json();
   };
 

@@ -292,5 +292,14 @@ export async function registerRoutes(app: express.Application) {
     });
   });
 
+  // Catch all API routes that don't exist - return JSON 404 instead of HTML
+  app.use("/api/*", (req, res) => {
+    res.status(404).json({ 
+      error: "API endpoint not found",
+      path: req.originalUrl,
+      method: req.method 
+    });
+  });
+
   return server;
 }
