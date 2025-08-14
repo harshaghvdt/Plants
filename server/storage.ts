@@ -1,75 +1,70 @@
-import {
-  users,
-  posts,
-  follows,
-  likes,
-  shares,
-  notifications,
-  type User,
-  type UpsertUser,
-  type Post,
-  type PostWithAuthor,
-  type InsertPost,
-  type Follow,
-  type InsertNotification,
-} from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, asc, and, or, sql, inArray, isNull } from "drizzle-orm";
+import { sql } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
+import type { NewUser, NewPost, NewNotification, NewVerificationRequest } from "@shared/schema";
+import { users, posts, follows, likes, shares, notifications, verificationRequests } from "@shared/schema";
 
 export interface IStorage {
-  // User operations
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  // User management
+  getUser(id: string): Promise<any | undefined>;
+  getUserByUsername(username: string): Promise<any | undefined>;
+  getUserByPhone(phone: string): Promise<any | undefined>;
+  createUser(userData: NewUser): Promise<any>;
+  upsertUser(userData: NewUser): Promise<any>;
   updateUserStats(userId: string): Promise<void>;
-  getSuggestedUsers(userId: string, limit?: number): Promise<User[]>;
   
-  // Tweet operations
-  createTweet(tweet: InsertTweet): Promise<Tweet>;
-  getTweet(id: string): Promise<TweetWithAuthor | undefined>;
-  getUserTweets(userId: string, currentUserId?: string): Promise<TweetWithAuthor[]>;
-  getTimeline(userId: string): Promise<TweetWithAuthor[]>;
-  getTweetReplies(tweetId: string, currentUserId?: string): Promise<TweetWithAuthor[]>;
-  updateTweet(id: string, content: string): Promise<Tweet | undefined>;
-  deleteTweet(id: string): Promise<boolean>;
-  searchTweets(query: string, currentUserId?: string): Promise<TweetWithAuthor[]>;
+  // Post management
+  createPost(postData: NewPost): Promise<any>;
+  getPost(id: string): Promise<any | undefined>;
+  getPostsByUser(userId: string): Promise<any[]>;
+  getTimeline(userId: string): Promise<any[]>;
+  getReplies(postId: string): Promise<any[]>;
   
-  // Social operations
-  followUser(followerId: string, followingId: string): Promise<Follow>;
-  unfollowUser(followerId: string, followingId: string): Promise<boolean>;
-  isFollowing(followerId: string, followingId: string): Promise<boolean>;
-  getFollowers(userId: string): Promise<User[]>;
-  getFollowing(userId: string): Promise<User[]>;
+  // Follow management
+  followUser(followerId: string, followingId: string): Promise<void>;
+  unfollowUser(followerId: string, followingId: string): Promise<void>;
+  getFollowingStatus(followerId: string, followingId: string): Promise<boolean>;
   
-  // Like operations
-  likeTweet(userId: string, tweetId: string): Promise<boolean>;
-  unlikeTweet(userId: string, tweetId: string): Promise<boolean>;
-  isLiked(userId: string, tweetId: string): Promise<boolean>;
+  // Like/Share management
+  likePost(userId: string, postId: string): Promise<void>;
+  unlikePost(userId: string, postId: string): Promise<void>;
+  sharePost(userId: string, postId: string): Promise<void>;
+  unsharePost(userId: string, postId: string): Promise<void>;
   
-  // Retweet operations
-  retweetTweet(userId: string, tweetId: string): Promise<boolean>;
-  unretweetTweet(userId: string, tweetId: string): Promise<boolean>;
-  isRetweeted(userId: string, tweetId: string): Promise<boolean>;
-  
-  // Notification operations
-  createNotification(notification: InsertNotification): Promise<void>;
-  getUserNotifications(userId: string): Promise<any[]>;
+  // Notification management
+  createNotification(notificationData: NewNotification): Promise<any>;
+  getNotifications(userId: string): Promise<any[]>;
   markNotificationAsRead(notificationId: string): Promise<void>;
-  getUnreadNotificationsCount(userId: string): Promise<number>;
+  
+  // Verification management
+  createVerificationRequest(requestData: NewVerificationRequest): Promise<any>;
+  getVerificationRequests(userId: string): Promise<any[]>;
+  updateVerificationRequest(id: string, status: string, adminNotes?: string, reviewedBy?: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
-  async getUser(id: string): Promise<User | undefined> {
+  // User management
+  async getUser(id: string): Promise<any | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
+  async getUserByUsername(username: string): Promise<any | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
+  async getUserByPhone(phone: string): Promise<any | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.phone, phone));
+    return user;
+  }
+
+  async createUser(userData: NewUser): Promise<any> {
+    const [user] = await db.insert(users).values(userData).returning();
+    return user;
+  }
+
+  async upsertUser(userData: NewUser): Promise<any> {
     // Generate username if not provided
     if (!userData.username && userData.email) {
       const baseUsername = userData.email.split('@')[0];
@@ -91,360 +86,285 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserStats(userId: string): Promise<void> {
-    const followersCount = await db.select({ count: sql<number>`count(*)` })
-      .from(follows)
-      .where(eq(follows.followingId, userId));
-
-    const followingCount = await db.select({ count: sql<number>`count(*)` })
-      .from(follows)
-      .where(eq(follows.followerId, userId));
-
-    const tweetsCount = await db.select({ count: sql<number>`count(*)` })
-      .from(tweets)
-      .where(and(eq(tweets.authorId, userId), isNull(tweets.retweetOfId)));
-
+    // Get posts count
+    const postsCount = await db.select({ count: count() }).from(posts).where(eq(posts.authorId, userId));
+    
+    // Get followers count
+    const followersCount = await db.select({ count: count() }).from(follows).where(eq(follows.followingId, userId));
+    
+    // Get following count
+    const followingCount = await db.select({ count: count() }).from(follows).where(eq(follows.followerId, userId));
+    
+    // Update user stats
     await db.update(users)
       .set({
-        followersCount: followersCount[0].count,
-        followingCount: followingCount[0].count,
-        tweetsCount: tweetsCount[0].count,
-        updatedAt: new Date(),
+        postsCount: postsCount[0]?.count || 0,
+        followersCount: followersCount[0]?.count || 0,
+        followingCount: followingCount[0]?.count || 0,
       })
       .where(eq(users.id, userId));
   }
 
-  async getSuggestedUsers(userId: string, limit = 3): Promise<User[]> {
-    const followingIds = await db.select({ id: follows.followingId })
-      .from(follows)
-      .where(eq(follows.followerId, userId));
-
-    const excludeIds = [userId, ...followingIds.map(f => f.id)];
-
-    return await db.select()
-      .from(users)
-      .where(sql`${users.id} NOT IN ${excludeIds.length > 0 ? sql`(${sql.join(excludeIds.map(id => sql`${id}`), sql`, `)})` : sql`('')`}`)
-      .orderBy(desc(users.followersCount))
-      .limit(limit);
-  }
-
-  async createTweet(tweet: InsertTweet): Promise<Tweet> {
-    const [newTweet] = await db.insert(tweets).values(tweet).returning();
-    
-    // Update reply count if this is a reply
-    if (tweet.replyToId) {
-      await db.update(tweets)
-        .set({ 
-          repliesCount: sql`${tweets.repliesCount} + 1`,
-          updatedAt: new Date(),
-        })
-        .where(eq(tweets.id, tweet.replyToId));
-    }
-
-    // Update retweet count if this is a retweet
-    if (tweet.retweetOfId) {
-      await db.update(tweets)
-        .set({ 
-          retweetsCount: sql`${tweets.retweetsCount} + 1`,
-          updatedAt: new Date(),
-        })
-        .where(eq(tweets.id, tweet.retweetOfId));
-    }
-
-    return newTweet;
-  }
-
-  async getTweet(id: string): Promise<TweetWithAuthor | undefined> {
-    const result = await db.select({
-      tweet: tweets,
-      author: users,
-    })
-    .from(tweets)
-    .leftJoin(users, eq(tweets.authorId, users.id))
-    .where(eq(tweets.id, id));
-
-    if (result.length === 0) return undefined;
-
-    const { tweet, author } = result[0];
-    if (!author) return undefined;
-
-    return { ...tweet, author };
-  }
-
-  async getUserTweets(userId: string, currentUserId?: string): Promise<TweetWithAuthor[]> {
-    const result = await db.select({
-      tweet: tweets,
-      author: users,
-    })
-    .from(tweets)
-    .leftJoin(users, eq(tweets.authorId, users.id))
-    .where(eq(tweets.authorId, userId))
-    .orderBy(desc(tweets.createdAt));
-
-    const tweetsWithAuthors = result.filter(r => r.author).map(r => ({ ...r.tweet, author: r.author! }));
-
-    if (currentUserId) {
-      return this.enrichTweetsWithUserActions(tweetsWithAuthors, currentUserId);
-    }
-
-    return tweetsWithAuthors;
-  }
-
-  async getTimeline(userId: string): Promise<TweetWithAuthor[]> {
-    // Get users that the current user follows
-    const followingIds = await db.select({ id: follows.followingId })
-      .from(follows)
-      .where(eq(follows.followerId, userId));
-
-    const userIds = [userId, ...followingIds.map(f => f.id)];
-
-    const result = await db.select({
-      tweet: tweets,
-      author: users,
-    })
-    .from(tweets)
-    .leftJoin(users, eq(tweets.authorId, users.id))
-    .where(inArray(tweets.authorId, userIds))
-    .orderBy(desc(tweets.createdAt))
-    .limit(50);
-
-    const tweetsWithAuthors = result.filter(r => r.author).map(r => ({ ...r.tweet, author: r.author! }));
-    return this.enrichTweetsWithUserActions(tweetsWithAuthors, userId);
-  }
-
-  async getTweetReplies(tweetId: string, currentUserId?: string): Promise<TweetWithAuthor[]> {
-    const result = await db.select({
-      tweet: tweets,
-      author: users,
-    })
-    .from(tweets)
-    .leftJoin(users, eq(tweets.authorId, users.id))
-    .where(eq(tweets.replyToId, tweetId))
-    .orderBy(asc(tweets.createdAt));
-
-    const tweetsWithAuthors = result.filter(r => r.author).map(r => ({ ...r.tweet, author: r.author! }));
-
-    if (currentUserId) {
-      return this.enrichTweetsWithUserActions(tweetsWithAuthors, currentUserId);
-    }
-
-    return tweetsWithAuthors;
-  }
-
-  async updateTweet(id: string, content: string): Promise<Tweet | undefined> {
-    const [updatedTweet] = await db.update(tweets)
-      .set({ content, updatedAt: new Date() })
-      .where(eq(tweets.id, id))
-      .returning();
-    return updatedTweet;
-  }
-
-  async deleteTweet(id: string): Promise<boolean> {
-    const result = await db.delete(tweets).where(eq(tweets.id, id));
-    return result.rowCount > 0;
-  }
-
-  async searchTweets(query: string, currentUserId?: string): Promise<TweetWithAuthor[]> {
-    const result = await db.select({
-      tweet: tweets,
-      author: users,
-    })
-    .from(tweets)
-    .leftJoin(users, eq(tweets.authorId, users.id))
-    .where(sql`${tweets.content} ILIKE ${`%${query}%`}`)
-    .orderBy(desc(tweets.createdAt))
-    .limit(50);
-
-    const tweetsWithAuthors = result.filter(r => r.author).map(r => ({ ...r.tweet, author: r.author! }));
-
-    if (currentUserId) {
-      return this.enrichTweetsWithUserActions(tweetsWithAuthors, currentUserId);
-    }
-
-    return tweetsWithAuthors;
-  }
-
-  async followUser(followerId: string, followingId: string): Promise<Follow> {
-    const [follow] = await db.insert(follows)
-      .values({ followerId, followingId })
-      .returning();
+  // Post management
+  async createPost(postData: NewPost): Promise<any> {
+    const [post] = await db.insert(posts).values(postData).returning();
     
     // Update user stats
+    await this.updateUserStats(post.authorId);
+    
+    return post;
+  }
+
+  async getPost(id: string): Promise<any | undefined> {
+    const [post] = await db
+      .select({
+        id: posts.id,
+        content: posts.content,
+        authorId: posts.authorId,
+        replyToId: posts.replyToId,
+        category: posts.category,
+        metadata: posts.metadata,
+        createdAt: posts.createdAt,
+        updatedAt: posts.updatedAt,
+      })
+      .from(posts)
+      .where(eq(posts.id, id));
+    
+    if (!post) return undefined;
+    
+    // Get author details
+    const author = await this.getUser(post.authorId);
+    if (!author) return undefined;
+    
+    return {
+      ...post,
+      author,
+    };
+  }
+
+  async getPostsByUser(userId: string): Promise<any[]> {
+    const userPosts = await db
+      .select({
+        id: posts.id,
+        content: posts.content,
+        authorId: posts.authorId,
+        replyToId: posts.replyToId,
+        category: posts.category,
+        metadata: posts.metadata,
+        createdAt: posts.createdAt,
+        updatedAt: posts.updatedAt,
+      })
+      .from(posts)
+      .where(eq(posts.authorId, userId))
+      .orderBy(desc(posts.createdAt));
+    
+    // Get author details for each post
+    const author = await this.getUser(userId);
+    if (!author) return [];
+    
+    return userPosts.map(post => ({
+      ...post,
+      author,
+    }));
+  }
+
+  async getTimeline(userId?: string): Promise<any[]> {
+    // Get all posts with author details
+    const allPosts = await db
+      .select({
+        id: posts.id,
+        content: posts.content,
+        authorId: posts.authorId,
+        replyToId: posts.replyToId,
+        category: posts.category,
+        metadata: posts.metadata,
+        createdAt: posts.createdAt,
+        updatedAt: posts.updatedAt,
+      })
+      .from(posts)
+      .orderBy(desc(posts.createdAt));
+    
+    // Get author details for each post
+    const postsWithAuthors = await Promise.all(
+      allPosts.map(async (post) => {
+        const author = await this.getUser(post.authorId);
+        if (!author) return null;
+        
+        // If user is authenticated, check if they liked/shared the post
+        let isLiked = false;
+        let isShared = false;
+        
+        if (userId) {
+          const [likeRecord] = await db.select().from(likes).where(and(eq(likes.userId, userId), eq(likes.postId, post.id)));
+          const [shareRecord] = await db.select().from(shares).where(and(eq(shares.userId, userId), eq(shares.postId, post.id)));
+          
+          isLiked = !!likeRecord;
+          isShared = !!shareRecord;
+        }
+        
+        // Get counts
+        const [likesCount] = await db.select({ count: count() }).from(likes).where(eq(likes.postId, post.id));
+        const [sharesCount] = await db.select({ count: count() }).from(shares).where(eq(shares.postId, post.id));
+        const [repliesCount] = await db.select({ count: count() }).from(posts).where(eq(posts.replyToId, post.id));
+        
+        return {
+          ...post,
+          author,
+          isLiked,
+          isShared,
+          likesCount: likesCount?.count || 0,
+          sharesCount: sharesCount?.count || 0,
+          repliesCount: repliesCount?.count || 0,
+        };
+      })
+    );
+    
+    return postsWithAuthors.filter(Boolean);
+  }
+
+  async getReplies(postId: string): Promise<any[]> {
+    const replies = await db
+      .select({
+        id: posts.id,
+        content: posts.content,
+        authorId: posts.authorId,
+        replyToId: posts.replyToId,
+        category: posts.category,
+        metadata: posts.metadata,
+        createdAt: posts.createdAt,
+        updatedAt: posts.updatedAt,
+      })
+      .from(posts)
+      .where(eq(posts.replyToId, postId))
+      .orderBy(desc(posts.createdAt));
+    
+    // Get author details for each reply
+    const repliesWithAuthors = await Promise.all(
+      replies.map(async (reply) => {
+        const author = await this.getUser(reply.authorId);
+        if (!author) return null;
+        
+        return {
+          ...reply,
+          author,
+        };
+      })
+    );
+    
+    return repliesWithAuthors.filter(Boolean);
+  }
+
+  // Follow management
+  async followUser(followerId: string, followingId: string): Promise<void> {
+    await db.insert(follows).values({
+      followerId,
+      followingId,
+    });
+    
     await this.updateUserStats(followerId);
     await this.updateUserStats(followingId);
-    
-    return follow;
   }
 
-  async unfollowUser(followerId: string, followingId: string): Promise<boolean> {
-    const result = await db.delete(follows)
-      .where(and(eq(follows.followerId, followerId), eq(follows.followingId, followingId)));
+  async unfollowUser(followerId: string, followingId: string): Promise<void> {
+    await db.delete(follows).where(
+      and(eq(follows.followerId, followerId), eq(follows.followingId, followingId))
+    );
     
-    if (result.rowCount > 0) {
-      // Update user stats
-      await this.updateUserStats(followerId);
-      await this.updateUserStats(followingId);
-      return true;
-    }
-    
-    return false;
+    await this.updateUserStats(followerId);
+    await this.updateUserStats(followingId);
   }
 
-  async isFollowing(followerId: string, followingId: string): Promise<boolean> {
-    const result = await db.select()
+  async getFollowingStatus(followerId: string, followingId: string): Promise<boolean> {
+    const [follow] = await db
+      .select()
       .from(follows)
       .where(and(eq(follows.followerId, followerId), eq(follows.followingId, followingId)));
-    return result.length > 0;
-  }
-
-  async getFollowers(userId: string): Promise<User[]> {
-    const result = await db.select({ user: users })
-      .from(follows)
-      .leftJoin(users, eq(follows.followerId, users.id))
-      .where(eq(follows.followingId, userId));
-
-    return result.filter(r => r.user).map(r => r.user!);
-  }
-
-  async getFollowing(userId: string): Promise<User[]> {
-    const result = await db.select({ user: users })
-      .from(follows)
-      .leftJoin(users, eq(follows.followingId, users.id))
-      .where(eq(follows.followerId, userId));
-
-    return result.filter(r => r.user).map(r => r.user!);
-  }
-
-  async likeTweet(userId: string, tweetId: string): Promise<boolean> {
-    try {
-      await db.insert(likes).values({ userId, tweetId });
-      await db.update(tweets)
-        .set({ 
-          likesCount: sql`${tweets.likesCount} + 1`,
-          updatedAt: new Date(),
-        })
-        .where(eq(tweets.id, tweetId));
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  async unlikeTweet(userId: string, tweetId: string): Promise<boolean> {
-    const result = await db.delete(likes)
-      .where(and(eq(likes.userId, userId), eq(likes.tweetId, tweetId)));
     
-    if (result.rowCount > 0) {
-      await db.update(tweets)
-        .set({ 
-          likesCount: sql`${tweets.likesCount} - 1`,
-          updatedAt: new Date(),
-        })
-        .where(eq(tweets.id, tweetId));
-      return true;
-    }
+    return !!follow;
+  }
+
+  // Like/Share management
+  async likePost(userId: string, postId: string): Promise<void> {
+    // Check if already liked
+    const [existingLike] = await db.select().from(likes).where(and(eq(likes.userId, userId), eq(likes.postId, postId)));
     
-    return false;
-  }
-
-  async isLiked(userId: string, tweetId: string): Promise<boolean> {
-    const result = await db.select()
-      .from(likes)
-      .where(and(eq(likes.userId, userId), eq(likes.tweetId, tweetId)));
-    return result.length > 0;
-  }
-
-  async retweetTweet(userId: string, tweetId: string): Promise<boolean> {
-    try {
-      await db.insert(retweets).values({ userId, tweetId });
-      await db.update(tweets)
-        .set({ 
-          retweetsCount: sql`${tweets.retweetsCount} + 1`,
-          updatedAt: new Date(),
-        })
-        .where(eq(tweets.id, tweetId));
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  async unretweetTweet(userId: string, tweetId: string): Promise<boolean> {
-    const result = await db.delete(retweets)
-      .where(and(eq(retweets.userId, userId), eq(retweets.tweetId, tweetId)));
+    if (existingLike) return; // Already liked
     
-    if (result.rowCount > 0) {
-      await db.update(tweets)
-        .set({ 
-          retweetsCount: sql`${tweets.retweetsCount} - 1`,
-          updatedAt: new Date(),
-        })
-        .where(eq(tweets.id, tweetId));
-      return true;
-    }
+    // Add like
+    await db.insert(likes).values({ userId, postId });
     
-    return false;
+    // Update post stats (this would need to be handled differently since we don't have likesCount column)
+    // For now, we'll just add the like record
   }
 
-  async isRetweeted(userId: string, tweetId: string): Promise<boolean> {
-    const result = await db.select()
-      .from(retweets)
-      .where(and(eq(retweets.userId, userId), eq(retweets.tweetId, tweetId)));
-    return result.length > 0;
+  async unlikePost(userId: string, postId: string): Promise<void> {
+    await db.delete(likes).where(and(eq(likes.userId, userId), eq(likes.postId, postId)));
   }
 
-  async createNotification(notification: InsertNotification): Promise<void> {
-    await db.insert(notifications).values(notification);
+  async sharePost(userId: string, postId: string): Promise<void> {
+    // Check if already shared
+    const [existingShare] = await db.select().from(shares).where(and(eq(shares.userId, userId), eq(shares.postId, postId)));
+    
+    if (existingShare) return; // Already shared
+    
+    // Add share
+    await db.insert(shares).values({ userId, postId });
   }
 
-  async getUserNotifications(userId: string): Promise<any[]> {
-    const result = await db.select({
-      notification: notifications,
-      fromUser: users,
-      tweet: tweets,
-    })
-    .from(notifications)
-    .leftJoin(users, eq(notifications.fromUserId, users.id))
-    .leftJoin(tweets, eq(notifications.tweetId, tweets.id))
-    .where(eq(notifications.userId, userId))
-    .orderBy(desc(notifications.createdAt))
-    .limit(50);
+  async unsharePost(userId: string, postId: string): Promise<void> {
+    await db.delete(shares).where(and(eq(shares.userId, userId), eq(shares.postId, postId)));
+  }
 
-    return result;
+  // Notification management
+  async createNotification(notificationData: NewNotification): Promise<any> {
+    const [notification] = await db.insert(notifications).values(notificationData).returning();
+    return notification;
+  }
+
+  async getNotifications(userId: string): Promise<any[]> {
+    return await db
+      .select({
+        id: notifications.id,
+        userId: notifications.userId,
+        fromUserId: notifications.fromUserId,
+        postId: notifications.postId,
+        type: notifications.type,
+        content: notifications.content,
+        isRead: notifications.isRead,
+        createdAt: notifications.createdAt,
+      })
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt));
   }
 
   async markNotificationAsRead(notificationId: string): Promise<void> {
-    await db.update(notifications)
-      .set({ isRead: true })
-      .where(eq(notifications.id, notificationId));
+    await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, notificationId));
   }
 
-  async getUnreadNotificationsCount(userId: string): Promise<number> {
-    const result = await db.select({ count: sql<number>`count(*)` })
-      .from(notifications)
-      .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
-    
-    return result[0].count;
+  // Verification management
+  async createVerificationRequest(requestData: NewVerificationRequest): Promise<any> {
+    const [request] = await db.insert(verificationRequests).values(requestData).returning();
+    return request;
   }
 
-  private async enrichTweetsWithUserActions(tweets: TweetWithAuthor[], userId: string): Promise<TweetWithAuthor[]> {
-    const tweetIds = tweets.map(t => t.id);
-    
-    const userLikes = await db.select({ tweetId: likes.tweetId })
-      .from(likes)
-      .where(and(eq(likes.userId, userId), inArray(likes.tweetId, tweetIds)));
+  async getVerificationRequests(userId: string): Promise<any[]> {
+    return await db
+      .select()
+      .from(verificationRequests)
+      .where(eq(verificationRequests.userId, userId))
+      .orderBy(desc(verificationRequests.submittedAt));
+  }
 
-    const userRetweets = await db.select({ tweetId: retweets.tweetId })
-      .from(retweets)
-      .where(and(eq(retweets.userId, userId), inArray(retweets.tweetId, tweetIds)));
-
-    const likedTweetIds = new Set(userLikes.map(l => l.tweetId));
-    const retweetedTweetIds = new Set(userRetweets.map(r => r.tweetId));
-
-    return tweets.map(tweet => ({
-      ...tweet,
-      isLiked: likedTweetIds.has(tweet.id),
-      isRetweeted: retweetedTweetIds.has(tweet.id),
-    }));
+  async updateVerificationRequest(id: string, status: "pending" | "approved" | "rejected", adminNotes?: string, reviewedBy?: string): Promise<void> {
+    await db.update(verificationRequests)
+      .set({
+        status,
+        adminNotes,
+        reviewedBy,
+        reviewedAt: new Date(),
+      })
+      .where(eq(verificationRequests.id, id));
   }
 }
 

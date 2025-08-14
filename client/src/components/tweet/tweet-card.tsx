@@ -1,283 +1,205 @@
 import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import { MessageSquare, Repeat, Heart, Share, MoreHorizontal } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
-import type { TweetWithAuthor } from "@shared/schema";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Heart, Share2, MessageCircle, MoreHorizontal, User, Calendar, MapPin, Globe } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { PostWithAuthor } from "@shared/schema";
 
 interface TweetCardProps {
-  tweet: TweetWithAuthor;
+  tweet: PostWithAuthor;
   showThread?: boolean;
+  onLike?: (postId: string) => void;
+  onShare?: (postId: string) => void;
+  onReply?: (postId: string) => void;
 }
 
-export default function TweetCard({ tweet, showThread = false }: TweetCardProps) {
-  const { user } = useAuth();
-  const { toast } = useToast();
+export default function TweetCard({ tweet, showThread = false, onLike, onShare, onReply }: TweetCardProps) {
+  const { isMobile } = useIsMobile();
+  
+  // Initialize state with safe defaults
   const [isLiked, setIsLiked] = useState(tweet.isLiked || false);
-  const [isRetweeted, setIsRetweeted] = useState(tweet.isRetweeted || false);
-  const [likesCount, setLikesCount] = useState(tweet.likesCount);
-  const [retweetsCount, setRetweetsCount] = useState(tweet.retweetsCount);
+  const [isRetweeted, setIsRetweeted] = useState(tweet.isShared || false);
+  const [likesCount, setLikesCount] = useState(tweet.likesCount || 0);
+  const [retweetsCount, setRetweetsCount] = useState(tweet.sharesCount || 0);
 
-  const likeMutation = useMutation({
-    mutationFn: async () => {
-      if (isLiked) {
-        await apiRequest("DELETE", `/api/tweets/${tweet.id}/like`);
-      } else {
-        await apiRequest("POST", `/api/tweets/${tweet.id}/like`);
-      }
-    },
-    onMutate: () => {
-      // Optimistic update
-      setIsLiked(!isLiked);
-      setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
-    },
-    onError: (error) => {
-      // Revert optimistic update
-      setIsLiked(isLiked);
-      setLikesCount(tweet.likesCount);
-      
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to update like status",
-        variant: "destructive",
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tweets/timeline"] });
-    },
-  });
-
-  const retweetMutation = useMutation({
-    mutationFn: async () => {
-      if (isRetweeted) {
-        await apiRequest("DELETE", `/api/tweets/${tweet.id}/retweet`);
-      } else {
-        await apiRequest("POST", `/api/tweets/${tweet.id}/retweet`);
-      }
-    },
-    onMutate: () => {
-      // Optimistic update
-      setIsRetweeted(!isRetweeted);
-      setRetweetsCount(prev => isRetweeted ? prev - 1 : prev + 1);
-    },
-    onError: (error) => {
-      // Revert optimistic update
-      setIsRetweeted(isRetweeted);
-      setRetweetsCount(tweet.retweetsCount);
-      
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to update retweet status",
-        variant: "destructive",
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tweets/timeline"] });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("DELETE", `/api/tweets/${tweet.id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tweets/timeline"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/users", tweet.author.username, "tweets"] });
-      toast({
-        title: "Tweet deleted",
-        description: "Your tweet has been deleted successfully.",
-      });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to delete tweet",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleShare = async () => {
+  const handleLike = async () => {
+    if (!onLike) return;
+    
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: `Tweet by @${tweet.author.username}`,
-          text: tweet.content,
-          url: `/tweet/${tweet.id}`,
-        });
-      } else {
-        await navigator.clipboard.writeText(`${window.location.origin}/tweet/${tweet.id}`);
-        toast({
-          title: "Link copied",
-          description: "Tweet link copied to clipboard",
-        });
-      }
+      await onLike(tweet.id);
+      setIsLiked(!isLiked);
+      setLikesCount(prev => isLiked ? (prev as number) - 1 : (prev as number) + 1);
     } catch (error) {
-      console.error("Failed to share:", error);
+      console.error('Error liking post:', error);
+      // Revert state on error
+      setLikesCount(tweet.likesCount || 0);
     }
   };
 
-  const isOwnTweet = user?.id === tweet.author.id;
-  const timeAgo = formatDistanceToNow(new Date(tweet.createdAt), { addSuffix: true });
+  const handleRetweet = async () => {
+    if (!onShare) return;
+    
+    try {
+      await onShare(tweet.id);
+      setIsRetweeted(!isRetweeted);
+      setRetweetsCount(prev => isRetweeted ? (prev as number) - 1 : (prev as number) + 1);
+    } catch (error) {
+      console.error('Error sharing post:', error);
+      // Revert state on error
+      setRetweetsCount(tweet.sharesCount || 0);
+    }
+  };
+
+  const handleReply = () => {
+    if (onReply) {
+      onReply(tweet.id);
+    }
+  };
+
+  // Safe date handling
+  const formatDate = (date: Date | null | undefined) => {
+    if (!date) return 'Unknown date';
+    try {
+      return formatDistanceToNow(new Date(date), { addSuffix: true });
+    } catch {
+      return 'Unknown date';
+    }
+  };
+
+  const timeAgo = formatDate(tweet.createdAt);
+
+  // Safe navigation
+  const handleNavigation = () => {
+    if (!showThread) {
+      // Navigate to tweet detail
+      window.location.href = `/tweet/${tweet.id}`;
+    }
+  };
 
   return (
-    <article className="tweet-card p-4 cursor-pointer hover:bg-twitter-light-gray transition-colors">
+    <article className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors">
       <div className="flex space-x-3">
-        <Link href={`/${tweet.author.username}`}>
-          <img
-            src={tweet.author.profileImageUrl || `https://i.pravatar.cc/48?u=${tweet.author.id}`}
-            alt="User avatar"
-            className="w-12 h-12 rounded-full object-cover hover:opacity-90"
-          />
-        </Link>
+        {/* Avatar */}
+        <div className="flex-shrink-0">
+          <Avatar className={`${isMobile ? 'h-8 w-8' : 'h-10 w-10'}`}>
+            <AvatarImage src={tweet.author?.profileImageUrl || ''} alt={tweet.author?.firstName || 'User'} />
+            <AvatarFallback>
+              {tweet.author?.firstName?.[0] || 'U'}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+
+        {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center space-x-2 text-sm">
-            <Link href={`/${tweet.author.username}`}>
-              <span className="font-bold hover:underline">
-                {tweet.author.firstName} {tweet.author.lastName}
+          {/* Header */}
+          <div className="flex items-center space-x-2 mb-1">
+            <div className="flex items-center space-x-1">
+              <span className="font-semibold text-gray-900 hover:underline cursor-pointer">
+                {tweet.author?.firstName} {tweet.author?.lastName}
               </span>
-            </Link>
-            <Link href={`/${tweet.author.username}`}>
-              <span className="text-gray-500 hover:underline">@{tweet.author.username}</span>
-            </Link>
+              {tweet.author?.isVerified && (
+                <Badge variant="secondary" className="text-xs px-1 py-0">
+                  ✓ Verified
+                </Badge>
+              )}
+            </div>
             <span className="text-gray-500">·</span>
-            <Link href={`/tweet/${tweet.id}`}>
-              <span className="text-gray-500 hover:underline">{timeAgo}</span>
-            </Link>
-            {isOwnTweet && (
-              <div className="ml-auto">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="rounded-full p-2">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem
-                      onClick={() => deleteMutation.mutate()}
-                      disabled={deleteMutation.isPending}
-                      className="text-red-600"
-                    >
-                      {deleteMutation.isPending ? "Deleting..." : "Delete Tweet"}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+            <span className="text-gray-500 text-sm">{timeAgo}</span>
+          </div>
+
+          {/* Username */}
+          <div className="text-gray-500 text-sm mb-2">
+            @{tweet.author?.username}
+          </div>
+
+          {/* Tweet Content */}
+          <div className="text-gray-900 mb-3 leading-relaxed">
+            {showThread ? (
+              <div>{tweet.content}</div>
+            ) : (
+              <Link href={`/tweet/${tweet.id}`}>
+                <div className="cursor-pointer" onClick={handleNavigation}>
+                  {tweet.content}
+                </div>
+              </Link>
             )}
           </div>
-          
-          <Link href={showThread ? undefined : `/tweet/${tweet.id}`}>
-            <p className="mt-2 text-base leading-relaxed">
-              {tweet.content}
-            </p>
-          </Link>
-          
-          {tweet.imageUrl && (
-            <img
-              src={tweet.imageUrl}
-              alt="Tweet image"
-              className="mt-3 rounded-2xl w-full object-cover max-h-80"
-            />
+
+          {/* Image (if any) */}
+          {tweet.metadata && (
+            <div className="mb-3">
+              <img
+                src={tweet.metadata}
+                alt="Post content"
+                className="rounded-lg max-h-96 w-full object-cover"
+              />
+            </div>
           )}
-          
-          <div className="flex items-center justify-between max-w-md mt-4 text-gray-500">
-            <Link href={`/tweet/${tweet.id}`}>
-              <button className="flex items-center space-x-2 hover:text-blue-500 group">
-                <div className="p-2 rounded-full group-hover:bg-blue-50">
-                  <MessageSquare className="w-5 h-5" />
-                </div>
-                <span className="text-sm">{tweet.repliesCount}</span>
-              </button>
-            </Link>
-            
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                retweetMutation.mutate();
-              }}
-              disabled={retweetMutation.isPending}
-              className={`flex items-center space-x-2 hover:text-green-500 group ${
-                isRetweeted ? "text-green-500" : ""
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between max-w-md">
+            {/* Reply */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleReply}
+              className={`flex items-center space-x-2 text-gray-500 hover:text-blue-500 hover:bg-blue-50 ${
+                isMobile ? 'px-2 py-1' : 'px-3 py-2'
               }`}
             >
-              <div className="p-2 rounded-full group-hover:bg-green-50">
-                <Repeat className="w-5 h-5" />
-              </div>
-              <span className="text-sm">{retweetsCount}</span>
-            </button>
-            
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                likeMutation.mutate();
-              }}
-              disabled={likeMutation.isPending}
-              className={`flex items-center space-x-2 hover:text-red-500 group ${
-                isLiked ? "text-red-500" : ""
+              <MessageCircle className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
+              {!isMobile && <span className="text-sm">{tweet.repliesCount || 0}</span>}
+            </Button>
+
+            {/* Retweet */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRetweet}
+              className={`flex items-center space-x-2 text-gray-500 hover:text-green-500 hover:bg-green-50 ${
+                isMobile ? 'px-2 py-1' : 'px-3 py-2'
               }`}
             >
-              <div className="p-2 rounded-full group-hover:bg-red-50">
-                <Heart className={`w-5 h-5 ${isLiked ? "fill-current" : ""}`} />
-              </div>
-              <span className="text-sm">{likesCount}</span>
-            </button>
-            
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                handleShare();
-              }}
-              className="hover:text-blue-500 group"
+              <Share2 className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
+              {!isMobile && <span className="text-sm">{retweetsCount}</span>}
+            </Button>
+
+            {/* Like */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLike}
+              className={`flex items-center space-x-2 text-gray-500 hover:text-red-500 hover:bg-red-50 ${
+                isMobile ? 'px-2 py-1' : 'px-3 py-2'
+              }`}
             >
-              <div className="p-2 rounded-full group-hover:bg-blue-50">
-                <Share className="w-5 h-5" />
-              </div>
-            </button>
+              <Heart className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
+              {!isMobile && <span className="text-sm">{likesCount}</span>}
+            </Button>
+
+            {/* More Options */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`text-gray-500 hover:text-gray-700 hover:bg-gray-100 ${
+                isMobile ? 'px-2 py-1' : 'px-3 py-2'
+              }`}
+            >
+              <MoreHorizontal className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
+            </Button>
           </div>
+
+          {/* Mobile: Show counts below actions */}
+          {isMobile && (
+            <div className="flex items-center justify-between mt-2 text-sm text-gray-500">
+              <span>{tweet.repliesCount || 0} replies</span>
+              <span>{retweetsCount} shares</span>
+              <span>{likesCount} likes</span>
+            </div>
+          )}
         </div>
       </div>
     </article>

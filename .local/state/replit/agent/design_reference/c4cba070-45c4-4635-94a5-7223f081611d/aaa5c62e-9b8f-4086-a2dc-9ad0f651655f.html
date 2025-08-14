@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'twitter-blue': '#1DA1F2',
+                        'twitter-dark-blue': '#1A91DA',
+                        'twitter-light-gray': '#F7F9FA',
+                        'twitter-dark-gray': '#14171A',
+                        'twitter-border': '#E1E8ED',
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        .hover-scale {
+            transition: transform 0.2s ease-in-out;
+        }
+        .hover-scale:hover {
+            transform: scale(1.02);
+        }
+        .tweet-card {
+            transition: all 0.2s ease-in-out;
+        }
+        .tweet-card:hover {
+            background-color: #F7F9FA;
+        }
+    </style>
+</head>
+<body class="bg-white font-inter text-twitter-dark-gray">
+    <!-- @COMPONENT: Layout Container -->
+    <div class="min-h-screen flex">
+        <!-- @COMPONENT: Left Sidebar Navigation -->
+        <div class="w-64 fixed h-full bg-white border-r border-twitter-border px-4 py-4 hidden lg:block">
+            <!-- Logo -->
+            <div class="mb-8">
+                <i class="fab fa-twitter text-twitter-blue text-3xl"></i>
+            </div>
+            
+            <!-- Navigation Menu -->
+            <nav class="space-y-2">
+                <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-full hover:bg-twitter-light-gray transition-colors font-medium text-lg" data-event="click:navigateHome">
+                    <i class="fas fa-home text-xl w-6"></i>
+                    <span>Home</span>
+                </a>
+                <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-full hover:bg-twitter-light-gray transition-colors font-medium text-lg" data-event="click:navigateExplore">
+                    <i class="fas fa-hashtag text-xl w-6"></i>
+                    <span>Explore</span>
+                </a>
+                <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-full hover:bg-twitter-light-gray transition-colors font-medium text-lg" data-event="click:navigateNotifications">
+                    <i class="fas fa-bell text-xl w-6"></i>
+                    <span>Notifications</span>
+                </a>
+                <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-full hover:bg-twitter-light-gray transition-colors font-medium text-lg" data-event="click:navigateMessages">
+                    <i class="fas fa-envelope text-xl w-6"></i>
+                    <span>Messages</span>
+                </a>
+                <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-full hover:bg-twitter-light-gray transition-colors font-medium text-lg" data-event="click:navigateBookmarks">
+                    <i class="fas fa-bookmark text-xl w-6"></i>
+                    <span>Bookmarks</span>
+                </a>
+                <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-full hover:bg-twitter-light-gray transition-colors font-medium text-lg" data-event="click:navigateProfile">
+                    <i class="fas fa-user text-xl w-6"></i>
+                    <span>Profile</span>
+                </a>
+                <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-full hover:bg-twitter-light-gray transition-colors font-medium text-lg" data-event="click:showMoreOptions">
+                    <i class="fas fa-ellipsis-h text-xl w-6"></i>
+                    <span>More</span>
+                </a>
+            </nav>
+            
+            <!-- Tweet Button -->
+            <button class="w-full bg-twitter-blue text-white rounded-full py-3 mt-6 font-bold text-lg hover:bg-twitter-dark-blue transition-colors" data-event="click:composeTweet">
+                Tweet
+            </button>
+            
+            <!-- User Profile at Bottom -->
+            <div class="absolute bottom-4 left-4 right-4">
+                <div class="flex items-center space-x-3 p-3 rounded-full hover:bg-twitter-light-gray transition-colors cursor-pointer" data-event="click:showProfileMenu">
+                    <!-- Current user's profile picture -->
+                    <img src="https://i.pravatar.cc/40?img=1" alt="User avatar" class="w-10 h-10 rounded-full object-cover" data-bind="currentUser.avatar">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-bold truncate" data-bind="currentUser.name">John Doe</p>
+                        <p class="text-gray-500 text-sm truncate" data-bind="currentUser.username">@johndoe</p>
+                    </div>
+                    <i class="fas fa-ellipsis-h text-gray-500"></i>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: Left Sidebar Navigation -->
+
+        <!-- @COMPONENT: Main Content Area -->
+        <div class="flex-1 lg:ml-64">
+            <div class="max-w-6xl mx-auto flex">
+                <!-- @COMPONENT: Main Timeline -->
+                <div class="flex-1 max-w-2xl border-r border-twitter-border">
+                    <!-- Header -->
+                    <div class="sticky top-0 bg-white/80 backdrop-blur-md border-b border-twitter-border px-4 py-3 z-10">
+                        <h1 class="text-xl font-bold">Home</h1>
+                    </div>
+                    
+                    <!-- @COMPONENT: Tweet Composer -->
+                    <div class="border-b border-twitter-border p-4" data-mock="true">
+                        <div class="flex space-x-3">
+                            <!-- User's profile picture for composing tweets -->
+                            <img src="https://i.pravatar.cc/48?img=1" alt="Your avatar" class="w-12 h-12 rounded-full object-cover">
+                            <div class="flex-1">
+                                <textarea 
+                                    placeholder="What's happening?" 
+                                    class="w-full resize-none border-none outline-none text-xl placeholder-gray-500 bg-transparent"
+                                    rows="3"
+                                    data-implementation="Should have 280 character limit with counter"
+                                    data-event="input:updateCharacterCount"
+                                ></textarea>
+                                <div class="flex items-center justify-between mt-4">
+                                    <div class="flex items-center space-x-4 text-twitter-blue">
+                                        <button class="hover:bg-blue-50 p-2 rounded-full" data-event="click:addMedia">
+                                            <i class="fas fa-image"></i>
+                                        </button>
+                                        <button class="hover:bg-blue-50 p-2 rounded-full" data-event="click:addGif">
+                                            <i class="fas fa-file-image"></i>
+                                        </button>
+                                        <button class="hover:bg-blue-50 p-2 rounded-full" data-event="click:addPoll">
+                                            <i class="fas fa-poll"></i>
+                                        </button>
+                                        <button class="hover:bg-blue-50 p-2 rounded-full" data-event="click:addEmoji">
+                                            <i class="fas fa-smile"></i>
+                                        </button>
+                                    </div>
+                                    <div class="flex items-center space-x-3">
+                                        <span class="text-sm text-gray-500" data-bind="characterCount">280</span>
+                                        <button class="bg-twitter-blue text-white px-6 py-2 rounded-full font-bold hover:bg-twitter-dark-blue transition-colors disabled:opacity-50" data-event="click:publishTweet">
+                                            Tweet
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: Tweet Composer -->
+
+                    <!-- @COMPONENT: Tweet Feed -->
+                    <div class="divide-y divide-twitter-border">
+                        <!-- @MAP: tweets.map(tweet => ( -->
+                        <!-- Tweet 1 -->
+                        <article class="tweet-card p-4 cursor-pointer" data-event="click:viewTweet" data-mock="true">
+                            <div class="flex space-x-3">
+                                <!-- Profile picture of a tech entrepreneur -->
+                                <img src="https://i.pravatar.cc/48?img=2" alt="User avatar" class="w-12 h-12 rounded-full object-cover">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center space-x-2 text-sm">
+                                        <span class="font-bold hover:underline" data-bind="tweet.author.name">Sarah Chen</span>
+                                        <span class="text-gray-500" data-bind="tweet.author.username">@sarahchen</span>
+                                        <span class="text-gray-500">·</span>
+                                        <span class="text-gray-500" data-bind="tweet.createdAt">2h</span>
+                                    </div>
+                                    <p class="mt-2 text-base leading-relaxed" data-bind="tweet.content">
+                                        Just shipped a major update to our platform! The new real-time collaboration features are going to be a game-changer for remote teams. Can't wait to see what you all build with it 🚀
+                                    </p>
+                                    <div class="flex items-center justify-between max-w-md mt-4 text-gray-500">
+                                        <button class="flex items-center space-x-2 hover:text-blue-500 group" data-event="click:replyToTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-blue-50">
+                                                <i class="fas fa-comment"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.repliesCount">24</span>
+                                        </button>
+                                        <button class="flex items-center space-x-2 hover:text-green-500 group" data-event="click:retweetTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-green-50">
+                                                <i class="fas fa-retweet"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.retweetsCount">12</span>
+                                        </button>
+                                        <button class="flex items-center space-x-2 hover:text-red-500 group" data-event="click:likeTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-red-50">
+                                                <i class="fas fa-heart"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.likesCount">89</span>
+                                        </button>
+                                        <button class="hover:text-blue-500 group" data-event="click:shareTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-blue-50">
+                                                <i class="fas fa-share"></i>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Tweet 2 -->
+                        <article class="tweet-card p-4 cursor-pointer" data-event="click:viewTweet" data-mock="true">
+                            <div class="flex space-x-3">
+                                <!-- Profile picture of a designer -->
+                                <img src="https://i.pravatar.cc/48?img=3" alt="User avatar" class="w-12 h-12 rounded-full object-cover">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center space-x-2 text-sm">
+                                        <span class="font-bold hover:underline" data-bind="tweet.author.name">Alex Rodriguez</span>
+                                        <span class="text-gray-500" data-bind="tweet.author.username">@alexdesigns</span>
+                                        <span class="text-gray-500">·</span>
+                                        <span class="text-gray-500" data-bind="tweet.createdAt">4h</span>
+                                    </div>
+                                    <p class="mt-2 text-base leading-relaxed" data-bind="tweet.content">
+                                        The new design system we've been working on is finally ready! Spent months getting the color palettes and component library just right. Sometimes the best designs are the ones that feel invisible to users.
+                                    </p>
+                                    <!-- A beautiful interface design with clean layouts and modern typography -->
+                                    <img src="https://images.unsplash.com/photo-1609921141835-710b7fa6e438?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=300" alt="Design system interface mockup" class="mt-3 rounded-2xl w-full object-cover max-h-80" data-mock-image="true">
+                                    <div class="flex items-center justify-between max-w-md mt-4 text-gray-500">
+                                        <button class="flex items-center space-x-2 hover:text-blue-500 group" data-event="click:replyToTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-blue-50">
+                                                <i class="fas fa-comment"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.repliesCount">18</span>
+                                        </button>
+                                        <button class="flex items-center space-x-2 hover:text-green-500 group" data-event="click:retweetTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-green-50">
+                                                <i class="fas fa-retweet"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.retweetsCount">31</span>
+                                        </button>
+                                        <button class="flex items-center space-x-2 hover:text-red-500 group" data-event="click:likeTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-red-50">
+                                                <i class="fas fa-heart"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.likesCount">156</span>
+                                        </button>
+                                        <button class="hover:text-blue-500 group" data-event="click:shareTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-blue-50">
+                                                <i class="fas fa-share"></i>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Tweet 3 -->
+                        <article class="tweet-card p-4 cursor-pointer" data-event="click:viewTweet" data-mock="true">
+                            <div class="flex space-x-3">
+                                <!-- Profile picture of a tech journalist -->
+                                <img src="https://i.pravatar.cc/48?img=4" alt="User avatar" class="w-12 h-12 rounded-full object-cover">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center space-x-2 text-sm">
+                                        <span class="font-bold hover:underline" data-bind="tweet.author.name">Maria Santos</span>
+                                        <span class="text-gray-500" data-bind="tweet.author.username">@mariajournalist</span>
+                                        <span class="text-gray-500">·</span>
+                                        <span class="text-gray-500" data-bind="tweet.createdAt">6h</span>
+                                    </div>
+                                    <p class="mt-2 text-base leading-relaxed" data-bind="tweet.content">
+                                        Breaking: New study shows remote work productivity has increased by 15% compared to pre-2020 levels. The future of work is definitely hybrid. What's your experience been like?
+                                    </p>
+                                    <div class="flex items-center justify-between max-w-md mt-4 text-gray-500">
+                                        <button class="flex items-center space-x-2 hover:text-blue-500 group" data-event="click:replyToTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-blue-50">
+                                                <i class="fas fa-comment"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.repliesCount">67</span>
+                                        </button>
+                                        <button class="flex items-center space-x-2 hover:text-green-500 group" data-event="click:retweetTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-green-50">
+                                                <i class="fas fa-retweet"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.retweetsCount">45</span>
+                                        </button>
+                                        <button class="flex items-center space-x-2 hover:text-red-500 group" data-event="click:likeTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-red-50">
+                                                <i class="fas fa-heart"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.likesCount">234</span>
+                                        </button>
+                                        <button class="hover:text-blue-500 group" data-event="click:shareTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-blue-50">
+                                                <i class="fas fa-share"></i>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Tweet 4 with Image -->
+                        <article class="tweet-card p-4 cursor-pointer" data-event="click:viewTweet" data-mock="true">
+                            <div class="flex space-x-3">
+                                <!-- Profile picture of a travel blogger -->
+                                <img src="https://i.pravatar.cc/48?img=5" alt="User avatar" class="w-12 h-12 rounded-full object-cover">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center space-x-2 text-sm">
+                                        <span class="font-bold hover:underline" data-bind="tweet.author.name">David Kim</span>
+                                        <span class="text-gray-500" data-bind="tweet.author.username">@davidtravels</span>
+                                        <span class="text-gray-500">·</span>
+                                        <span class="text-gray-500" data-bind="tweet.createdAt">8h</span>
+                                    </div>
+                                    <p class="mt-2 text-base leading-relaxed" data-bind="tweet.content">
+                                        Coffee shop wifi speed test results from around the world. Tokyo still winning! ☕️📶 Where do you get your best remote work done?
+                                    </p>
+                                    <!-- A modern coffee shop interior with laptops and people working -->
+                                    <img src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=300" alt="Modern coffee shop with people working on laptops" class="mt-3 rounded-2xl w-full object-cover max-h-80" data-mock-image="true">
+                                    <div class="flex items-center justify-between max-w-md mt-4 text-gray-500">
+                                        <button class="flex items-center space-x-2 hover:text-blue-500 group" data-event="click:replyToTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-blue-50">
+                                                <i class="fas fa-comment"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.repliesCount">92</span>
+                                        </button>
+                                        <button class="flex items-center space-x-2 hover:text-green-500 group" data-event="click:retweetTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-green-50">
+                                                <i class="fas fa-retweet"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.retweetsCount">28</span>
+                                        </button>
+                                        <button class="flex items-center space-x-2 hover:text-red-500 group" data-event="click:likeTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-red-50">
+                                                <i class="fas fa-heart"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.likesCount">187</span>
+                                        </button>
+                                        <button class="hover:text-blue-500 group" data-event="click:shareTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-blue-50">
+                                                <i class="fas fa-share"></i>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Thread Tweet -->
+                        <article class="tweet-card p-4 cursor-pointer" data-event="click:viewTweet" data-mock="true">
+                            <div class="flex space-x-3">
+                                <!-- Profile picture of a startup founder -->
+                                <img src="https://i.pravatar.cc/48?img=6" alt="User avatar" class="w-12 h-12 rounded-full object-cover">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center space-x-2 text-sm">
+                                        <span class="font-bold hover:underline" data-bind="tweet.author.name">Lisa Thompson</span>
+                                        <span class="text-gray-500" data-bind="tweet.author.username">@lisafounder</span>
+                                        <span class="text-gray-500">·</span>
+                                        <span class="text-gray-500" data-bind="tweet.createdAt">12h</span>
+                                    </div>
+                                    <p class="mt-2 text-base leading-relaxed" data-bind="tweet.content">
+                                        Thread: 5 lessons learned from scaling a startup from 0 to 100 employees 🧵 
+                                        
+                                        1/ Hire for culture fit first, skills second. You can teach skills, but you can't teach someone to be a good teammate.
+                                    </p>
+                                    <div class="mt-3 text-twitter-blue text-sm">
+                                        <span>Show this thread</span>
+                                    </div>
+                                    <div class="flex items-center justify-between max-w-md mt-4 text-gray-500">
+                                        <button class="flex items-center space-x-2 hover:text-blue-500 group" data-event="click:replyToTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-blue-50">
+                                                <i class="fas fa-comment"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.repliesCount">143</span>
+                                        </button>
+                                        <button class="flex items-center space-x-2 hover:text-green-500 group" data-event="click:retweetTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-green-50">
+                                                <i class="fas fa-retweet"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.retweetsCount">78</span>
+                                        </button>
+                                        <button class="flex items-center space-x-2 hover:text-red-500 group" data-event="click:likeTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-red-50">
+                                                <i class="fas fa-heart"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.likesCount">421</span>
+                                        </button>
+                                        <button class="hover:text-blue-500 group" data-event="click:shareTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-blue-50">
+                                                <i class="fas fa-share"></i>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Retweet -->
+                        <article class="tweet-card p-4 cursor-pointer" data-event="click:viewTweet" data-mock="true">
+                            <div class="flex items-center space-x-2 text-gray-500 text-sm mb-2 ml-12">
+                                <i class="fas fa-retweet"></i>
+                                <span data-bind="retweeter.name">John Doe retweeted</span>
+                            </div>
+                            <div class="flex space-x-3">
+                                <!-- Profile picture of an AI researcher -->
+                                <img src="https://i.pravatar.cc/48?img=7" alt="User avatar" class="w-12 h-12 rounded-full object-cover">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center space-x-2 text-sm">
+                                        <span class="font-bold hover:underline" data-bind="tweet.author.name">Dr. Emma Watson</span>
+                                        <span class="text-gray-500" data-bind="tweet.author.username">@emmawatsonai</span>
+                                        <span class="text-gray-500">·</span>
+                                        <span class="text-gray-500" data-bind="tweet.createdAt">1d</span>
+                                    </div>
+                                    <p class="mt-2 text-base leading-relaxed" data-bind="tweet.content">
+                                        Fascinating new research on machine learning interpretability. The ability to understand "why" an AI made a decision is becoming just as important as the accuracy of that decision. Explainable AI is the future.
+                                    </p>
+                                    <!-- A visualization of AI neural networks and data patterns -->
+                                    <img src="https://pixabay.com/get/g61aaceaaf5bf56d8c9297f3df3252f851eec6ffe5eb9424b65038e2f67a4c54a6e89b86ac97d0d657610c2d9d9af3764c3994c04cf38ec3e27beb44ec3ba7a24_1280.jpg" alt="AI neural network visualization with glowing connections" class="mt-3 rounded-2xl w-full object-cover max-h-80" data-mock-image="true">
+                                    <div class="flex items-center justify-between max-w-md mt-4 text-gray-500">
+                                        <button class="flex items-center space-x-2 hover:text-blue-500 group" data-event="click:replyToTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-blue-50">
+                                                <i class="fas fa-comment"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.repliesCount">56</span>
+                                        </button>
+                                        <button class="flex items-center space-x-2 hover:text-green-500 group" data-event="click:retweetTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-green-50">
+                                                <i class="fas fa-retweet"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.retweetsCount">112</span>
+                                        </button>
+                                        <button class="flex items-center space-x-2 hover:text-red-500 group" data-event="click:likeTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-red-50">
+                                                <i class="fas fa-heart"></i>
+                                            </div>
+                                            <span class="text-sm" data-bind="tweet.likesCount">298</span>
+                                        </button>
+                                        <button class="hover:text-blue-500 group" data-event="click:shareTweet">
+                                            <div class="p-2 rounded-full group-hover:bg-blue-50">
+                                                <i class="fas fa-share"></i>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                        <!-- @END_MAP )) -->
+                    </div>
+                    <!-- @END_COMPONENT: Tweet Feed -->
+                </div>
+                <!-- @END_COMPONENT: Main Timeline -->
+
+                <!-- @COMPONENT: Right Sidebar -->
+                <div class="w-80 p-4 hidden xl:block">
+                    <!-- Search Bar -->
+                    <div class="mb-6">
+                        <div class="relative">
+                            <input 
+                                type="text" 
+                                placeholder="Search Twitter" 
+                                class="w-full bg-twitter-light-gray rounded-full py-3 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-twitter-blue focus:bg-white"
+                                data-event="input:handleSearch"
+                            >
+                            <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                        </div>
+                    </div>
+
+                    <!-- Trending for You -->
+                    <div class="bg-twitter-light-gray rounded-2xl p-4 mb-6" data-mock="true">
+                        <h2 class="text-xl font-bold mb-3">Trending for you</h2>
+                        <div class="space-y-3">
+                            <div class="hover:bg-gray-200 p-2 rounded cursor-pointer transition-colors" data-event="click:viewTrend">
+                                <p class="text-sm text-gray-500">Trending in Technology</p>
+                                <p class="font-bold">#WebDevelopment</p>
+                                <p class="text-sm text-gray-500">42.1K Tweets</p>
+                            </div>
+                            <div class="hover:bg-gray-200 p-2 rounded cursor-pointer transition-colors" data-event="click:viewTrend">
+                                <p class="text-sm text-gray-500">Trending in Business</p>
+                                <p class="font-bold">#RemoteWork</p>
+                                <p class="text-sm text-gray-500">28.7K Tweets</p>
+                            </div>
+                            <div class="hover:bg-gray-200 p-2 rounded cursor-pointer transition-colors" data-event="click:viewTrend">
+                                <p class="text-sm text-gray-500">Trending</p>
+                                <p class="font-bold">Artificial Intelligence</p>
+                                <p class="text-sm text-gray-500">156K Tweets</p>
+                            </div>
+                            <div class="hover:bg-gray-200 p-2 rounded cursor-pointer transition-colors" data-event="click:viewTrend">
+                                <p class="text-sm text-gray-500">Trending in Design</p>
+                                <p class="font-bold">#UXDesign</p>
+                                <p class="text-sm text-gray-500">19.3K Tweets</p>
+                            </div>
+                            <div class="hover:bg-gray-200 p-2 rounded cursor-pointer transition-colors" data-event="click:viewTrend">
+                                <p class="text-sm text-gray-500">Trending</p>
+                                <p class="font-bold">#StartupLife</p>
+                                <p class="text-sm text-gray-500">87.5K Tweets</p>
+                            </div>
+                        </div>
+                        <button class="text-twitter-blue hover:underline mt-3" data-event="click:showMoreTrends">
+                            Show more
+                        </button>
+                    </div>
+
+                    <!-- Who to Follow -->
+                    <div class="bg-twitter-light-gray rounded-2xl p-4" data-mock="true">
+                        <h2 class="text-xl font-bold mb-3">Who to follow</h2>
+                        <div class="space-y-3">
+                            <!-- @MAP: suggestedUsers.map(user => ( -->
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <!-- Profile picture of a developer advocate -->
+                                    <img src="https://i.pravatar.cc/40?img=8" alt="User avatar" class="w-10 h-10 rounded-full object-cover">
+                                    <div>
+                                        <p class="font-bold text-sm hover:underline cursor-pointer" data-bind="user.name">Ryan Florence</p>
+                                        <p class="text-gray-500 text-sm" data-bind="user.username">@ryanflorence</p>
+                                    </div>
+                                </div>
+                                <button class="bg-twitter-dark-gray text-white px-4 py-1 rounded-full text-sm font-bold hover:bg-gray-800 transition-colors" data-event="click:followUser">
+                                    Follow
+                                </button>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <!-- Profile picture of a design systems expert -->
+                                    <img src="https://i.pravatar.cc/40?img=9" alt="User avatar" class="w-10 h-10 rounded-full object-cover">
+                                    <div>
+                                        <p class="font-bold text-sm hover:underline cursor-pointer" data-bind="user.name">Brad Frost</p>
+                                        <p class="text-gray-500 text-sm" data-bind="user.username">@brad_frost</p>
+                                    </div>
+                                </div>
+                                <button class="bg-twitter-dark-gray text-white px-4 py-1 rounded-full text-sm font-bold hover:bg-gray-800 transition-colors" data-event="click:followUser">
+                                    Follow
+                                </button>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <!-- Profile picture of a product manager -->
+                                    <img src="https://i.pravatar.cc/40?img=10" alt="User avatar" class="w-10 h-10 rounded-full object-cover">
+                                    <div>
+                                        <p class="font-bold text-sm hover:underline cursor-pointer" data-bind="user.name">Julie Zhou</p>
+                                        <p class="text-gray-500 text-sm" data-bind="user.username">@joulee</p>
+                                    </div>
+                                </div>
+                                <button class="bg-twitter-dark-gray text-white px-4 py-1 rounded-full text-sm font-bold hover:bg-gray-800 transition-colors" data-event="click:followUser">
+                                    Follow
+                                </button>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+                        <button class="text-twitter-blue hover:underline mt-3" data-event="click:showMoreSuggestions">
+                            Show more
+                        </button>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: Right Sidebar -->
+            </div>
+        </div>
+        <!-- @END_COMPONENT: Main Content Area -->
+    </div>
+    <!-- @END_COMPONENT: Layout Container -->
+
+    <!-- @COMPONENT: Mobile Navigation -->
+    <div class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-twitter-border px-4 py-2">
+        <div class="flex justify-around">
+            <button class="p-3" data-event="click:navigateHome">
+                <i class="fas fa-home text-xl"></i>
+            </button>
+            <button class="p-3" data-event="click:navigateExplore">
+                <i class="fas fa-search text-xl"></i>
+            </button>
+            <button class="p-3" data-event="click:navigateNotifications">
+                <i class="fas fa-bell text-xl"></i>
+            </button>
+            <button class="p-3" data-event="click:navigateMessages">
+                <i class="fas fa-envelope text-xl"></i>
+            </button>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: Mobile Navigation -->
+
+    <!-- @COMPONENT: Tweet Compose Modal (Hidden by default) -->
+    <div id="composeModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4" data-modal="compose">
+        <div class="bg-white rounded-2xl w-full max-w-2xl max-h-96 overflow-y-auto">
+            <div class="p-4 border-b border-twitter-border flex items-center justify-between">
+                <button class="text-xl" data-event="click:closeComposeModal">
+                    <i class="fas fa-times"></i>
+                </button>
+                <h2 class="text-lg font-bold">Compose Tweet</h2>
+                <div></div>
+            </div>
+            <div class="p-4">
+                <div class="flex space-x-3">
+                    <img src="https://i.pravatar.cc/48?img=1" alt="Your avatar" class="w-12 h-12 rounded-full object-cover">
+                    <div class="flex-1">
+                        <textarea 
+                            placeholder="What's happening?" 
+                            class="w-full resize-none border-none outline-none text-xl placeholder-gray-500 bg-transparent min-h-32"
+                            data-implementation="Should have 280 character limit with counter"
+                            data-event="input:updateCharacterCount"
+                        ></textarea>
+                        <div class="flex items-center justify-between mt-4">
+                            <div class="flex items-center space-x-4 text-twitter-blue">
+                                <button class="hover:bg-blue-50 p-2 rounded-full" data-event="click:addMedia">
+                                    <i class="fas fa-image"></i>
+                                </button>
+                                <button class="hover:bg-blue-50 p-2 rounded-full" data-event="click:addGif">
+                                    <i class="fas fa-file-image"></i>
+                                </button>
+                                <button class="hover:bg-blue-50 p-2 rounded-full" data-event="click:addPoll">
+                                    <i class="fas fa-poll"></i>
+                                </button>
+                                <button class="hover:bg-blue-50 p-2 rounded-full" data-event="click:addEmoji">
+                                    <i class="fas fa-smile"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <span class="text-sm text-gray-500" data-bind="characterCount">280</span>
+                                <button class="bg-twitter-blue text-white px-6 py-2 rounded-full font-bold hover:bg-twitter-dark-blue transition-colors disabled:opacity-50" data-event="click:publishTweet">
+                                    Tweet
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: Tweet Compose Modal -->
+
+    <script>
+        // TODO: Implement business logic, API calls, and state management
+        (function() {
+            // Basic interaction handlers for demonstration
+            const handleButtonClick = (event) => {
+                event.preventDefault();
+                // Add visual feedback
+                const button = event.target.closest('button');
+                if (button) {
+                    button.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        button.style.transform = '';
+                    }, 150);
+                }
+            };
+
+            // Add click handlers to all buttons
+            document.querySelectorAll('button').forEach(button => {
+                button.addEventListener('click', handleButtonClick);
+            });
+
+            // Modal functionality
+            const composeModal = document.getElementById('composeModal');
+            const tweetButtons = document.querySelectorAll('[data-event*="composeTweet"]');
+            const closeModalButtons = document.querySelectorAll('[data-event*="closeComposeModal"]');
+
+            tweetButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    composeModal.classList.remove('hidden');
+                });
+            });
+
+            closeModalButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    composeModal.classList.add('hidden');
+                });
+            });
+
+            // Close modal when clicking outside
+            composeModal.addEventListener('click', (e) => {
+                if (e.target === composeModal) {
+                    composeModal.classList.add('hidden');
+                }
+            });
+
+            // Like button animation
+            document.querySelectorAll('[data-event*="likeTweet"]').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const heart = button.querySelector('i');
+                    heart.classList.toggle('fas');
+                    heart.classList.toggle('far');
+                    if (heart.classList.contains('fas')) {
+                        heart.style.color = '#e91e63';
+                        button.style.color = '#e91e63';
+                    } else {
+                        heart.style.color = '';
+                        button.style.color = '';
+                    }
+                });
+            });
+
+            // Character counter for textareas
+            document.querySelectorAll('textarea').forEach(textarea => {
+                textarea.addEventListener('input', (e) => {
+                    const charCount = e.target.value.length;
+                    const maxChars = 280;
+                    const counter = e.target.closest('.flex-1')?.querySelector('[data-bind="characterCount"]');
+                    if (counter) {
+                        counter.textContent = maxChars - charCount;
+                        if (charCount > maxChars) {
+                            counter.style.color = '#e91e63';
+                        } else {
+                            counter.style.color = '';
+                        }
+                    }
+                });
+            });
+        })();
+    </script>
+</body>
+</html>

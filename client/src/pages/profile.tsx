@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Link as LinkIcon, Calendar, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { User, TweetWithAuthor } from "@shared/schema";
 
 export default function Profile() {
@@ -20,6 +21,7 @@ export default function Profile() {
   const { user: currentUser, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const { isMobile } = useIsMobile();
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -153,48 +155,56 @@ export default function Profile() {
         <Sidebar />
         
         <div className="flex-1 lg:ml-64">
-          <div className="max-w-2xl mx-auto border-r border-twitter-border">
-            {/* Header */}
+          <div className={`mx-auto ${
+            isMobile ? 'w-full' : 'max-w-2xl border-r border-twitter-border'
+          }`}>
+            {/* Header - Mobile Optimized */}
             <div className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-twitter-border px-4 py-3 z-10">
               <div className="flex items-center space-x-4">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate("/")}
-                  className="rounded-full p-2"
+                  className={`rounded-full p-2 ${isMobile ? 'min-w-[44px] min-h-[44px]' : ''}`}
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
                 <div>
                   <h1 className="text-xl font-bold">{user.firstName} {user.lastName}</h1>
-                  <p className="text-sm text-gray-500">{user.tweetsCount} tweets</p>
+                  <p className="text-sm text-gray-500">{user.postsCount || 0} posts</p>
                 </div>
               </div>
             </div>
 
-            {/* Profile Header */}
+            {/* Profile Header - Mobile Optimized */}
             <div className="relative">
               {/* Cover Photo */}
-              <div className="h-48 bg-gradient-to-r from-twitter-blue to-blue-600"></div>
+              <div className={`bg-gradient-to-r from-twitter-blue to-blue-600 ${
+                isMobile ? 'h-32' : 'h-48'
+              }`}></div>
               
-              {/* Profile Info */}
-              <div className="px-4 pb-4">
-                <div className="flex justify-between items-start -mt-16 mb-4">
+              {/* Profile Info - Mobile Optimized */}
+              <div className={`px-4 pb-4 ${isMobile ? 'px-3' : ''}`}>
+                <div className={`flex justify-between items-start -mt-16 mb-4 ${
+                  isMobile ? 'flex-col space-y-3' : ''
+                }`}>
                   <img
                     src={user.profileImageUrl || `https://i.pravatar.cc/128?u=${user.id}`}
                     alt={`${user.firstName} ${user.lastName}`}
-                    className="w-32 h-32 rounded-full border-4 border-white object-cover"
+                    className={`rounded-full border-4 border-white object-cover ${
+                      isMobile ? 'w-24 h-24' : 'w-32 h-32'
+                    }`}
                   />
                   
                   {!isOwnProfile && (
                     <Button
                       onClick={() => followMutation.mutate()}
                       disabled={followingLoading || followMutation.isPending}
-                      className={
+                      className={`${
                         followingStatus?.isFollowing
                           ? "bg-white text-twitter-blue border border-twitter-blue hover:bg-red-50 hover:text-red-600 hover:border-red-600"
                           : "bg-twitter-blue text-white hover:bg-twitter-dark-blue"
-                      }
+                      } ${isMobile ? 'w-full' : ''}`}
                     >
                       {followMutation.isPending
                         ? "Loading..."
@@ -206,7 +216,9 @@ export default function Profile() {
                 </div>
 
                 <div className="space-y-2">
-                  <h1 className="text-2xl font-bold text-gray-900">
+                  <h1 className={`font-bold text-gray-900 ${
+                    isMobile ? 'text-xl' : 'text-2xl'
+                  }`}>
                     {user.firstName} {user.lastName}
                   </h1>
                   <p className="text-gray-500">@{user.username}</p>
@@ -215,7 +227,9 @@ export default function Profile() {
                     <p className="text-gray-900">{user.bio}</p>
                   )}
 
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                  <div className={`flex flex-wrap items-center gap-4 text-sm text-gray-500 ${
+                    isMobile ? 'flex-col items-start space-y-2' : ''
+                  }`}>
                     {user.location && (
                       <div className="flex items-center space-x-1">
                         <MapPin className="h-4 w-4" />
@@ -237,11 +251,13 @@ export default function Profile() {
                     )}
                     <div className="flex items-center space-x-1">
                       <Calendar className="h-4 w-4" />
-                      <span>Joined {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                      <span>Joined {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Unknown date'}</span>
                     </div>
                   </div>
 
-                  <div className="flex space-x-6 text-sm">
+                  <div className={`flex text-sm ${
+                    isMobile ? 'flex-col space-y-2' : 'space-x-6'
+                  }`}>
                     <div>
                       <span className="font-bold text-gray-900">{user.followingCount}</span>
                       <span className="text-gray-500 ml-1">Following</span>
@@ -255,12 +271,12 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Tweets */}
+            {/* Tweets - Mobile Optimized */}
             <div className="border-t border-twitter-border">
               <div className="divide-y divide-twitter-border">
                 {tweetsLoading ? (
                   Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="p-4">
+                    <div key={i} className={`${isMobile ? 'p-3' : 'p-4'}`}>
                       <div className="flex space-x-3">
                         <Skeleton className="w-12 h-12 rounded-full" />
                         <div className="flex-1 space-y-3">
@@ -280,7 +296,7 @@ export default function Profile() {
                     </div>
                   ))
                 ) : tweets.length === 0 ? (
-                  <div className="p-8 text-center">
+                  <div className={`text-center ${isMobile ? 'p-6' : 'p-8'}`}>
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">
                       {isOwnProfile ? "You haven't tweeted yet" : `@${user.username} hasn't tweeted yet`}
                     </h3>

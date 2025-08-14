@@ -11,12 +11,16 @@ import WhoToFollow from "@/components/ui/who-to-follow";
 import { useQuery } from "@tanstack/react-query";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Leaf, Sprout, Sun, Droplets, TreePine } from "lucide-react";
+import { Leaf, Sprout, Sun, Droplets, TreePine, Search, Menu } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import type { PostWithAuthor } from "@shared/schema";
 
 export default function Home() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
+  const { isMobile, isTablet } = useIsMobile();
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -71,18 +75,43 @@ export default function Home() {
 
         {/* Main Content */}
         <div className="flex-1 lg:ml-64">
-          <div className="max-w-6xl mx-auto flex">
+          <div className={`mx-auto flex ${
+            isMobile ? 'flex-col' : 'max-w-6xl'
+          }`}>
             {/* Plant Feed Timeline */}
-            <div className="flex-1 max-w-2xl border-r border-border">
-              {/* Header */}
-              <div className="sticky top-0 bg-card/80 backdrop-blur-md border-b border-border px-6 py-4 z-10">
-                <div className="flex items-center space-x-3">
-                  <Sprout className="h-6 w-6 text-leaf-primary botanical-sway" />
-                  <h1 className="text-xl font-bold heading-organic text-foreground">Your Garden</h1>
+            <div className={`flex-1 ${
+              isMobile ? 'w-full' : 'max-w-2xl border-r border-border'
+            }`}>
+              {/* Header - Mobile Optimized */}
+              <div className="sticky top-0 bg-card/80 backdrop-blur-md border-b border-border px-4 py-4 z-10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Sprout className="h-6 w-6 text-leaf-primary botanical-sway" />
+                    <div>
+                      <h1 className="text-xl font-bold heading-organic text-foreground">Your Garden</h1>
+                      <p className="text-sm text-muted-foreground text-botanical">
+                        Share and discover plant care stories
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Mobile Search Button */}
+                  {isMobile && (
+                    <Sheet>
+                      <SheetTrigger asChild>
+                        <Button variant="outline" size="sm" className="lg:hidden">
+                          <Search className="h-4 w-4 mr-2" />
+                          Search
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent side="top" className="h-[50vh]">
+                        <div className="p-4">
+                          <SearchBar placeholder="Search plants, care tips..." />
+                        </div>
+                      </SheetContent>
+                    </Sheet>
+                  )}
                 </div>
-                <p className="text-sm text-muted-foreground text-botanical mt-1">
-                  Share and discover plant care stories
-                </p>
               </div>
 
               {/* Plant Care Composer */}
@@ -90,8 +119,10 @@ export default function Home() {
                 <TweetComposer />
               </div>
 
-              {/* Daily Plant Tips */}
-              <div className="p-6 border-b border-border bg-gradient-to-r from-leaf-secondary/20 to-sun-yellow/20">
+              {/* Daily Plant Tips - Mobile Optimized */}
+              <div className={`border-b border-border bg-gradient-to-r from-leaf-secondary/20 to-sun-yellow/20 ${
+                isMobile ? 'p-4' : 'p-6'
+              }`}>
                 <div className="flex items-center space-x-3 mb-3">
                   <Sun className="h-5 w-5 text-sun-yellow" />
                   <span className="font-semibold text-sm heading-organic text-foreground">Today's Plant Tip</span>
@@ -104,8 +135,10 @@ export default function Home() {
               {/* Plant Care Feed */}
               <div className="space-y-0">
                 {postsLoading ? (
-                  // Loading skeleton with botanical theme
-                  <div className="space-y-4 p-6">
+                  // Loading skeleton with botanical theme - Mobile Optimized
+                  <div className={`space-y-4 ${
+                    isMobile ? 'p-4' : 'p-6'
+                  }`}>
                     {Array.from({ length: 3 }).map((_, i) => (
                       <div key={i} className="space-y-3 botanical-grow" style={{ animationDelay: `${i * 0.1}s` }}>
                         <div className="flex space-x-3">
@@ -129,7 +162,9 @@ export default function Home() {
                     <TweetCard key={post.id} tweet={post} />
                   ))
                 ) : (
-                  <div className="p-12 text-center space-y-6">
+                  <div className={`text-center space-y-6 ${
+                    isMobile ? 'p-8' : 'p-12'
+                  }`}>
                     <div className="botanical-bloom">
                       <TreePine className="h-20 w-20 text-leaf-secondary mx-auto" />
                     </div>
@@ -142,7 +177,9 @@ export default function Home() {
                         or ask the community for advice on your green companions.
                       </p>
                     </div>
-                    <div className="flex items-center justify-center space-x-8 text-sm text-muted-foreground">
+                    <div className={`flex items-center justify-center text-sm text-muted-foreground ${
+                      isMobile ? 'flex-col space-y-4' : 'space-x-8'
+                    }`}>
                       <div className="flex items-center space-x-2">
                         <Leaf className="h-4 w-4 text-leaf-primary" />
                         <span className="text-botanical">Share experiences</span>
@@ -161,49 +198,51 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right Sidebar - Plant Discovery */}
-            <div className="hidden xl:block w-80 p-6 space-y-6">
-              <SearchBar placeholder="Search plants, care tips..." />
-              
-              {/* Plant Care Reminders */}
-              <div className="post-card">
-                <div className="flex items-center space-x-2 mb-4">
-                  <Droplets className="h-5 w-5 text-sky-blue" />
-                  <h3 className="font-semibold heading-organic text-foreground">Care Reminders</h3>
+            {/* Right Sidebar - Plant Discovery - Hidden on Mobile */}
+            {!isMobile && (
+              <div className="hidden xl:block w-80 p-6 space-y-6">
+                <SearchBar placeholder="Search plants, care tips..." />
+                
+                {/* Plant Care Reminders */}
+                <div className="post-card">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Droplets className="h-5 w-5 text-sky-blue" />
+                    <h3 className="font-semibold heading-organic text-foreground">Care Reminders</h3>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-botanical">Water Pothos</span>
+                      <span className="text-muted-foreground">Today</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-botanical">Fertilize Monstera</span>
+                      <span className="text-muted-foreground">Tomorrow</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-botanical">Repot Snake Plant</span>
+                      <span className="text-muted-foreground">This week</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-botanical">Water Pothos</span>
-                    <span className="text-muted-foreground">Today</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-botanical">Fertilize Monstera</span>
-                    <span className="text-muted-foreground">Tomorrow</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-botanical">Repot Snake Plant</span>
-                    <span className="text-muted-foreground">This week</span>
-                  </div>
-                </div>
-              </div>
 
-              <TrendingSidebar />
-              <WhoToFollow />
-              
-              {/* Plant ID Help */}
-              <div className="post-card">
-                <div className="flex items-center space-x-2 mb-4">
-                  <Leaf className="h-5 w-5 text-leaf-primary" />
-                  <h3 className="font-semibold heading-organic text-foreground">Need Plant ID?</h3>
+                <TrendingSidebar />
+                <WhoToFollow />
+                
+                {/* Plant ID Help */}
+                <div className="post-card">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Leaf className="h-5 w-5 text-leaf-primary" />
+                    <h3 className="font-semibold heading-organic text-foreground">Need Plant ID?</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground text-botanical mb-4">
+                    Can't identify a plant? Share a photo and our community will help!
+                  </p>
+                  <button className="text-sm text-primary font-medium hover:underline text-botanical">
+                    Ask the Community →
+                  </button>
                 </div>
-                <p className="text-sm text-muted-foreground text-botanical mb-4">
-                  Can't identify a plant? Share a photo and our community will help!
-                </p>
-                <button className="text-sm text-primary font-medium hover:underline text-botanical">
-                  Ask the Community →
-                </button>
               </div>
-            </div>
+            )}
           </div>
         </div>
 

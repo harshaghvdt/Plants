@@ -1,47 +1,50 @@
-import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useAuth } from "@/hooks/useAuth";
-import { useWebSocket } from "@/hooks/useWebSocket";
-import NotFound from "@/pages/not-found";
-import Landing from "@/pages/landing";
-import Home from "@/pages/home";
-import Profile from "@/pages/profile";
-import Tweet from "@/pages/tweet";
+import { Toaster } from "@/components/ui/toaster";
+import { Route, Switch } from "wouter";
+import Landing from "./pages/landing";
+import Home from "./pages/home";
+import Profile from "./pages/profile";
+import Tweet from "./pages/tweet";
+import Verification from "./pages/verification";
+import Admin from "./pages/admin";
+import Network from "./pages/network";
+import Interact from "./pages/interact";
+import Create from "./pages/create";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
+    },
+  },
+});
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  // Initialize WebSocket connection for authenticated users
-  useWebSocket();
-
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <>
-          <Route path="/" component={Home} />
-          <Route path="/:username" component={Profile} />
-          <Route path="/tweet/:id" component={Tweet} />
-        </>
-      )}
-      <Route component={NotFound} />
+      <Route path="/" component={Landing} />
+      <Route path="/home" component={Home} />
+      <Route path="/profile" component={Profile} />
+      <Route path="/:username" component={Profile} />
+      <Route path="/tweet/:id" component={Tweet} />
+      <Route path="/verification" component={Verification} />
+      <Route path="/admin" component={Admin} />
+      <Route path="/network" component={Network} />
+      <Route path="/interact" component={Interact} />
+      <Route path="/create" component={Create} />
     </Switch>
   );
 }
 
-function App() {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
         <Router />
+        <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
   );
 }
-
-export default App;

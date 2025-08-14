@@ -1,229 +1,266 @@
 import { sql } from "drizzle-orm";
-import {
-  index,
-  jsonb,
-  pgTable,
-  timestamp,
-  varchar,
-  text,
+import { 
+  pgTable, 
+  varchar, 
+  text, 
+  timestamp, 
+  boolean, 
   integer,
-  boolean,
-  primaryKey,
+  pgEnum
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
 
-// Session storage table.
-// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
-export const sessions = pgTable(
-  "sessions",
-  {
-    sid: varchar("sid").primaryKey(),
-    sess: jsonb("sess").notNull(),
-    expire: timestamp("expire").notNull(),
-  },
-  (table) => [index("IDX_session_expire").on(table.expire)],
-);
+// Enums
+export const accountTypeEnum = pgEnum("account_type", [
+  "student",
+  "farmer", 
+  "enthusiast",
+  "professor_scientist"
+]);
 
-// User storage table.
-// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+export const verificationStatusEnum = pgEnum("verification_status", [
+  "pending",
+  "approved",
+  "rejected"
+]);
+
+export const verificationTypeEnum = pgEnum("verification_type", [
+  "student",
+  "professor_scientist"
+]);
+
+// Tables
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
+  phone: varchar("phone").unique().notNull(), // Primary identifier
+  email: varchar("email").unique(), // Optional
+  firstName: varchar("first_name").notNull(),
+  lastName: varchar("last_name").notNull(),
   profileImageUrl: varchar("profile_image_url"),
-  username: varchar("username").unique(),
+  username: varchar("username").unique().notNull(),
   bio: text("bio"),
   location: varchar("location"),
   website: varchar("website"),
+  accountType: accountTypeEnum("account_type").notNull(),
+  isVerified: boolean("is_verified").default(false),
+  verificationType: verificationTypeEnum("verification_type"),
   followersCount: integer("followers_count").default(0),
   followingCount: integer("following_count").default(0),
-  tweetsCount: integer("tweets_count").default(0),
+  postsCount: integer("posts_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const posts = pgTable("posts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  authorId: varchar("author_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
-  imageUrl: varchar("image_url"),
-  replyToId: varchar("reply_to_id").references((): any => posts.id, { onDelete: "cascade" }),
-  shareOfId: varchar("share_of_id").references((): any => posts.id, { onDelete: "cascade" }),
-  likesCount: integer("likes_count").default(0),
-  sharesCount: integer("shares_count").default(0),
-  repliesCount: integer("replies_count").default(0),
-  isThread: boolean("is_thread").default(false),
-  threadOrder: integer("thread_order").default(0),
+  authorId: varchar("author_id").notNull().references(() => users.id),
+  replyToId: varchar("reply_to_id"), // Self-reference will be handled in application logic
+  category: varchar("category"), // agriculture, environment, etc.
+  metadata: text("metadata"), // JSON string for additional data
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const follows = pgTable(
-  "follows",
-  {
-    followerId: varchar("follower_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-    followingId: varchar("following_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at").defaultNow(),
-  },
-  (table) => ({
-    pk: primaryKey({ columns: [table.followerId, table.followingId] }),
-  }),
-);
+export const follows = pgTable("follows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  followerId: varchar("follower_id").notNull().references(() => users.id),
+  followingId: varchar("following_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
-export const likes = pgTable(
-  "likes",
-  {
-    userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-    postId: varchar("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at").defaultNow(),
-  },
-  (table) => ({
-    pk: primaryKey({ columns: [table.userId, table.postId] }),
-  }),
-);
+export const likes = pgTable("likes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  postId: varchar("post_id").notNull().references(() => posts.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
-export const shares = pgTable(
-  "shares",
-  {
-    userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-    postId: varchar("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at").defaultNow(),
-  },
-  (table) => ({
-    pk: primaryKey({ columns: [table.userId, table.postId] }),
-  }),
-);
+export const shares = pgTable("shares", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  postId: varchar("post_id").notNull().references(() => posts.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
 export const notifications = pgTable("notifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  fromUserId: varchar("from_user_id").references(() => users.id, { onDelete: "cascade" }),
-  type: varchar("type").notNull(), // 'like', 'share', 'follow', 'reply', 'mention'
-  postId: varchar("post_id").references(() => posts.id, { onDelete: "cascade" }),
-  message: text("message").notNull(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  fromUserId: varchar("from_user_id").references(() => users.id),
+  postId: varchar("post_id").references(() => posts.id),
+  type: varchar("type").notNull(), // like, share, follow, reply
+  content: text("content"),
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Relations
-export const usersRelations = relations(users, ({ many }) => ({
-  posts: many(posts),
-  likes: many(likes),
-  shares: many(shares),
-  following: many(follows, { relationName: "follower" }),
-  followers: many(follows, { relationName: "following" }),
-  notifications: many(notifications),
-}));
+export const otps = pgTable("otps", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  phone: varchar("phone").notNull(),
+  otp: varchar("otp").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  isUsed: boolean("is_used").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
-export const postsRelations = relations(posts, ({ one, many }) => ({
-  author: one(users, {
+export const verificationRequests = pgTable("verification_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  verificationType: verificationTypeEnum("verification_type").notNull(),
+  status: verificationStatusEnum("verification_status").default("pending"),
+  instituteName: varchar("institute_name"),
+  proofOfWorkUrl: varchar("proof_of_work_url"),
+  selfieUrl: varchar("selfie_url"),
+  adminNotes: text("admin_notes"),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+});
+
+// Relations
+export const usersRelations = {
+  posts: {
+    fields: [users.id],
+    references: [posts.authorId],
+  },
+  followers: {
+    fields: [users.id],
+    references: [follows.followingId],
+  },
+  following: {
+    fields: [users.id],
+    references: [follows.followerId],
+  },
+  likes: {
+    fields: [users.id],
+    references: [likes.userId],
+  },
+  shares: {
+    fields: [users.id],
+    references: [shares.userId],
+  },
+  notifications: {
+    fields: [users.id],
+    references: [notifications.userId],
+  },
+  verificationRequests: {
+    fields: [users.id],
+    references: [verificationRequests.userId],
+  },
+};
+
+export const postsRelations = {
+  author: {
     fields: [posts.authorId],
     references: [users.id],
-  }),
-  replyTo: one(posts, {
-    fields: [posts.replyToId],
-    references: [posts.id],
-    relationName: "replies",
-  }),
-  shareOf: one(posts, {
-    fields: [posts.shareOfId],
-    references: [posts.id],
-    relationName: "shares",
-  }),
-  replies: many(posts, { relationName: "replies" }),
-  sharedPosts: many(posts, { relationName: "shares" }),
-  likes: many(likes),
-  userShares: many(shares),
-}));
+  },
+  replies: {
+    fields: [posts.id],
+    references: [posts.replyToId],
+  },
+  likes: {
+    fields: [posts.id],
+    references: [likes.postId],
+  },
+  shares: {
+    fields: [posts.id],
+    references: [shares.postId],
+  },
+  notifications: {
+    fields: [posts.id],
+    references: [notifications.postId],
+  },
+};
 
-export const followsRelations = relations(follows, ({ one }) => ({
-  follower: one(users, {
+export const followsRelations = {
+  follower: {
     fields: [follows.followerId],
     references: [users.id],
-    relationName: "follower",
-  }),
-  following: one(users, {
+  },
+  following: {
     fields: [follows.followingId],
     references: [users.id],
-    relationName: "following",
-  }),
-}));
+  },
+};
 
-export const likesRelations = relations(likes, ({ one }) => ({
-  user: one(users, {
+export const likesRelations = {
+  user: {
     fields: [likes.userId],
     references: [users.id],
-  }),
-  post: one(posts, {
+  },
+  post: {
     fields: [likes.postId],
     references: [posts.id],
-  }),
-}));
+  },
+};
 
-export const sharesRelations = relations(shares, ({ one }) => ({
-  user: one(users, {
+export const sharesRelations = {
+  user: {
     fields: [shares.userId],
     references: [users.id],
-  }),
-  post: one(posts, {
+  },
+  post: {
     fields: [shares.postId],
     references: [posts.id],
-  }),
-}));
+  },
+};
 
-export const notificationsRelations = relations(notifications, ({ one }) => ({
-  user: one(users, {
+export const notificationsRelations = {
+  user: {
     fields: [notifications.userId],
     references: [users.id],
-  }),
-  fromUser: one(users, {
+  },
+  fromUser: {
     fields: [notifications.fromUserId],
     references: [users.id],
-  }),
-  post: one(posts, {
+  },
+  post: {
     fields: [notifications.postId],
     references: [posts.id],
-  }),
-}));
+  },
+};
 
-// Insert schemas
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertPostSchema = createInsertSchema(posts).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  likesCount: true,
-  sharesCount: true,
-  repliesCount: true,
-}).extend({
-  content: z.string().min(1).max(500), // Longer limit for plant care posts
-});
-
-export const insertFollowSchema = createInsertSchema(follows).omit({
-  createdAt: true,
-});
-
-export const insertNotificationSchema = createInsertSchema(notifications).omit({
-  id: true,
-  createdAt: true,
-});
+export const verificationRequestsRelations = {
+  user: {
+    fields: [verificationRequests.userId],
+    references: [users.id],
+  },
+  reviewedBy: {
+    fields: [verificationRequests.reviewedBy],
+    references: [users.id],
+  },
+};
 
 // Types
-export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
-export type InsertPost = z.infer<typeof insertPostSchema>;
+export type NewUser = typeof users.$inferInsert;
 export type Post = typeof posts.$inferSelect;
-export type PostWithAuthor = Post & { author: User; isLiked?: boolean; isShared?: boolean };
+export type NewPost = typeof posts.$inferInsert;
 export type Follow = typeof follows.$inferSelect;
+export type NewFollow = typeof follows.$inferInsert;
 export type Like = typeof likes.$inferSelect;
+export type NewLike = typeof likes.$inferInsert;
 export type Share = typeof shares.$inferSelect;
+export type NewShare = typeof shares.$inferInsert;
 export type Notification = typeof notifications.$inferSelect;
-export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type NewNotification = typeof notifications.$inferInsert;
+export type Otp = typeof otps.$inferSelect;
+export type NewOtp = typeof otps.$inferInsert;
+export type VerificationRequest = typeof verificationRequests.$inferSelect;
+export type NewVerificationRequest = typeof verificationRequests.$inferInsert;
+
+// Combined types for API responses
+export type PostWithAuthor = Post & {
+  author: User;
+  isLiked?: boolean;
+  isShared?: boolean;
+  likesCount?: number;
+  sharesCount?: number;
+  repliesCount?: number;
+  _count?: {
+    likes: number;
+    shares: number;
+    replies: number;
+  };
+};
+
+export type TweetWithAuthor = PostWithAuthor; // Alias for backward compatibility

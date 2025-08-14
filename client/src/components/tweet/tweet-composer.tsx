@@ -1,237 +1,364 @@
-import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Camera, Leaf, Sun, Droplets, Sprout, User } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Image, 
+  Smile, 
+  MapPin, 
+  Calendar, 
+  Send,
+  AlertTriangle,
+  CheckCircle,
+  Leaf,
+  Globe,
+  Info
+} from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useToast } from "@/hooks/use-toast";
+import ContentModeration from "@/components/content/content-moderation";
+import { validateContent, getContentCategoryDisplay } from "@/utils/content-moderation";
 
 interface TweetComposerProps {
-  replyToId?: string;
-  placeholder?: string;
   onSuccess?: () => void;
+  replyTo?: string;
   autoFocus?: boolean;
+  placeholder?: string;
 }
 
-export default function TweetComposer({ 
-  replyToId, 
-  placeholder = "Share your plant care experience...",
-  onSuccess,
-  autoFocus = false
-}: TweetComposerProps) {
+export default function TweetComposer({ onSuccess, replyTo, autoFocus = false, placeholder = "What's happening in your garden today?" }: TweetComposerProps) {
   const { user } = useAuth();
+  const { isMobile } = useIsMobile();
   const { toast } = useToast();
+  
   const [content, setContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showModeration, setShowModeration] = useState(false);
+  const [contentValidation, setContentValidation] = useState({
+    isValid: false,
+    category: 'unrelated' as 'agriculture' | 'environment' | 'unrelated'
+  });
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const createPostMutation = useMutation({
-    mutationFn: async (data: { content: string; replyToId?: string }) => {
-      return await apiRequest("POST", "/api/posts", data);
-    },
-    onSuccess: () => {
-      setContent("");
-      queryClient.invalidateQueries({ queryKey: ["/api/posts/timeline"] });
-      if (replyToId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/posts", replyToId, "replies"] });
-      }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) return;
+    
+    // Validate content before submission
+    const validation = validateContent(content);
+    if (!validation.isValid) {
       toast({
-        title: "Plant post shared!",
-        description: "Your plant care story has been shared with the community.",
-      });
-      onSuccess?.();
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Authentication Required",
-          description: "Please sign in to share your plant story...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Sharing Failed",
-        description: "Unable to share your plant story. Please try again.",
+        title: "Content Not Allowed",
+        description: validation.reason || "Please ensure your post is related to agriculture or environment.",
         variant: "destructive",
       });
-    },
-  });
+      return;
+    }
 
-  const handleSubmit = () => {
-    if (!content.trim()) return;
-    
-    createPostMutation.mutate({
-      content: content.trim(),
-      replyToId,
-    });
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          content,
+          replyTo,
+          category: validation.category,
+          metadata: {
+            characterCount: content.length,
+            hasImages: false,
+            isReply: !!replyTo,
+            validationScore: validation.confidence
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create post');
+      }
+
+      toast({
+        title: "Post Created!",
+        description: `Your ${validation.category} post has been shared successfully.`,
+      });
+
+      setContent("");
+      setShowModeration(false);
+      onSuccess?.();
+    } catch (error) {
+      toast({
+        title: "Post Failed",
+        description: error instanceof Error ? error.message : "Failed to create post",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const remainingChars = 500 - content.length; // Increased for plant care posts
-  const isOverLimit = remainingChars < 0;
-  const isNearLimit = remainingChars <= 50;
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newContent = e.target.value;
+    setContent(newContent);
+    
+    // Show moderation after user starts typing
+    if (newContent.trim().length > 10) {
+      setShowModeration(true);
+    } else {
+      setShowModeration(false);
+    }
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setContent(suggestion);
+    setShowModeration(true);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  };
+
+  const getCharacterCountColor = () => {
+    const count = content.length;
+    if (count > 280) return "text-red-500";
+    if (count > 250) return "text-yellow-500";
+    return "text-muted-foreground";
+  };
+
+  const getCategoryIcon = () => {
+    switch (contentValidation.category) {
+      case 'agriculture':
+        return <Leaf className="h-4 w-4 text-green-500" />;
+      case 'environment':
+        return <Globe className="h-4 w-4 text-blue-500" />;
+      default:
+        return <AlertTriangle className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  if (!user) {
+    return (
+      <Card className="w-full">
+        <CardContent className="p-4">
+          <div className="text-center text-muted-foreground">
+            Please sign in to create posts.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className="p-6 border-b border-border bg-card/50">
-      <div className="flex space-x-4">
-        {/* User Avatar */}
-        <div className="flex-shrink-0">
-          {user?.profileImageUrl ? (
-            <img
-              src={user.profileImageUrl}
-              alt="Your profile"
-              className="w-12 h-12 rounded-full object-cover border-2 border-primary/20"
-            />
-          ) : (
-            <div className="w-12 h-12 rounded-full bg-botanical-gradient flex items-center justify-center">
-              <User className="w-6 h-6 text-white" />
+    <Card className="w-full">
+      <CardContent className="p-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Header */}
+          <div className="flex items-start space-x-3">
+            <Avatar className="w-10 h-10">
+              <AvatarImage src={user.profileImageUrl} />
+              <AvatarFallback>
+                {user.firstName?.[0]}{user.lastName?.[0]}
+              </AvatarFallback>
+            </Avatar>
+            
+            <div className="flex-1">
+              <div className="flex items-center space-x-2 mb-2">
+                <span className="font-medium">
+                  {user.firstName} {user.lastName}
+                </span>
+                <Badge variant="outline" className="text-xs">
+                  @{user.username}
+                </Badge>
+                {user.isVerified && (
+                  <Badge variant="default" className="text-xs bg-blue-500">
+                    ✓ Verified
+                  </Badge>
+                )}
+              </div>
+              
+              {/* Content Input */}
+              <Textarea
+                ref={textareaRef}
+                placeholder={placeholder}
+                value={content}
+                onChange={handleContentChange}
+                className={`min-h-[120px] resize-none border-0 p-0 text-base focus:ring-0 ${
+                  isMobile ? 'text-base' : 'text-lg'
+                }`}
+                autoFocus={autoFocus}
+                maxLength={280}
+              />
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Composer */}
-        <div className="flex-1">
-          <Textarea
-            placeholder={placeholder}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            autoFocus={autoFocus}
-            className="min-h-[120px] text-lg border-none p-0 resize-none focus:outline-none focus:ring-0 bg-transparent text-botanical placeholder:text-muted-foreground/60"
-            style={{ fontSize: '18px' }}
-          />
+          {/* Content Moderation */}
+          {showModeration && (
+            <ContentModeration
+              content={content}
+              onValidationChange={(isValid) => {
+                setContentValidation(prev => ({ ...prev, isValid }));
+              }}
+              showSuggestions={true}
+            />
+          )}
 
           {/* Plant Care Suggestions */}
-          {!content && (
-            <div className="mt-4 p-4 bg-accent/30 rounded-xl border border-accent/40">
-              <div className="flex items-center space-x-2 mb-3">
-                <Leaf className="h-4 w-4 text-leaf-primary" />
-                <span className="text-sm font-medium text-muted-foreground heading-organic">Plant Care Ideas</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <button 
-                  onClick={() => setContent("Just repotted my monstera! The new pot gives it room to grow. Any tips for post-repot care? 🌱")}
-                  className="text-left p-2 rounded-lg hover:bg-accent/50 transition-colors text-botanical"
-                >
-                  Share repotting updates
-                </button>
-                <button 
-                  onClick={() => setContent("My snake plant is thriving in low light! Perfect for beginners who want resilient plants. 🐍🌿")}
-                  className="text-left p-2 rounded-lg hover:bg-accent/50 transition-colors text-botanical"
-                >
-                  Recommend easy plants
-                </button>
-                <button 
-                  onClick={() => setContent("Noticed some brown tips on my pothos leaves. Could it be overwatering or low humidity? Need advice! 💧")}
-                  className="text-left p-2 rounded-lg hover:bg-accent/50 transition-colors text-botanical"
-                >
-                  Ask for help
-                </button>
-                <button 
-                  onClick={() => setContent("Weekly plant check: watered the philodendron, rotated the fiddle leaf fig, and added humidity for the prayer plant! ✅")}
-                  className="text-left p-2 rounded-lg hover:bg-accent/50 transition-colors text-botanical"
-                >
-                  Share care routine
-                </button>
-              </div>
-            </div>
-          )}
+          <div className={`grid gap-2 text-sm ${
+            isMobile ? 'grid-cols-1' : 'grid-cols-2'
+          }`}>
+            <button
+              type="button"
+              onClick={() => handleSuggestionClick("Just repotted my monstera! The new pot gives it room to grow. Any tips for post-repot care? 🌱")}
+              className="text-left p-3 rounded-lg hover:bg-accent/50 transition-colors text-botanical border border-accent/40 hover:border-accent/60"
+            >
+              Share repotting updates
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSuggestionClick("My tomato plants are flowering! Should I remove the first flowers for better growth? 🍅")}
+              className="text-left p-3 rounded-lg hover:bg-accent/50 transition-colors text-botanical border border-accent/40 hover:border-accent/60"
+            >
+              Ask gardening questions
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSuggestionClick("Started composting kitchen waste. The soil quality improvement is amazing! ♻️")}
+              className="text-left p-3 rounded-lg hover:bg-accent/50 transition-colors text-botanical border border-accent/40 hover:border-accent/60"
+            >
+              Share sustainability wins
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSuggestionClick("The bees are loving my wildflower garden! Supporting pollinators one flower at a time 🐝")}
+              className="text-left p-3 rounded-lg hover:bg-accent/50 transition-colors text-botanical border border-accent/40 hover:border-accent/60"
+            >
+              Celebrate wildlife success
+            </button>
+          </div>
 
           {/* Actions Row */}
-          <div className="flex items-center justify-between mt-4">
-            {/* Media and Tools */}
-            <div className="flex items-center space-x-4">
-              <button 
-                className="p-2 hover:bg-accent/50 rounded-full transition-colors group"
-                title="Add plant photo"
+          <div className={`flex items-center justify-between ${
+            isMobile ? 'flex-col space-y-3' : 'flex-row'
+          }`}>
+            {/* Media Tools */}
+            <div className="flex items-center space-x-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className={`p-2 hover:bg-accent/50 ${
+                  isMobile ? 'p-3' : 'p-2'
+                }`}
               >
-                <Camera className="w-5 h-5 text-muted-foreground group-hover:text-leaf-primary transition-colors" />
-              </button>
-              <button 
-                className="p-2 hover:bg-accent/50 rounded-full transition-colors group"
-                title="Add care tip"
+                <Image className="w-5 h-5" />
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  // Handle image upload
+                  console.log('Images selected:', e.target.files);
+                }}
+              />
+              
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className={`p-2 hover:bg-accent/50 ${
+                  isMobile ? 'p-3' : 'p-2'
+                }`}
               >
-                <Droplets className="w-5 h-5 text-muted-foreground group-hover:text-sky-blue transition-colors" />
-              </button>
-              <button 
-                className="p-2 hover:bg-accent/50 rounded-full transition-colors group"
-                title="Track growth"
+                <Smile className="w-5 h-5" />
+              </Button>
+              
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className={`p-2 hover:bg-accent/50 ${
+                  isMobile ? 'p-3' : 'p-2'
+                }`}
               >
-                <Sun className="w-5 h-5 text-muted-foreground group-hover:text-sun-yellow transition-colors" />
-              </button>
+                <MapPin className="w-5 h-5" />
+              </Button>
+              
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className={`p-2 hover:bg-accent/50 ${
+                  isMobile ? 'p-3' : 'p-2'
+                }`}
+              >
+                <Calendar className="w-5 h-5" />
+              </Button>
             </div>
 
-            {/* Character Count and Post Button */}
-            <div className="flex items-center space-x-3">
-              {content && (
-                <div className="flex items-center space-x-2">
-                  <div
-                    className={`text-sm ${
-                      isOverLimit
-                        ? "text-destructive"
-                        : isNearLimit
-                        ? "text-sun-yellow"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {remainingChars}
+            {/* Submit Section */}
+            <div className={`flex items-center space-x-3 ${
+              isMobile ? 'w-full' : ''
+            }`}>
+              {/* Character Count */}
+              <div className="flex items-center space-x-2 text-sm">
+                <span className={getCharacterCountColor()}>
+                  {content.length}/280
+                </span>
+                {contentValidation.category !== 'unrelated' && (
+                  <div className="flex items-center space-x-1">
+                    {getCategoryIcon()}
+                    <span className="text-xs text-muted-foreground">
+                      {getContentCategoryDisplay(contentValidation.category)}
+                    </span>
                   </div>
-                  <div className="w-8 h-8 relative">
-                    <svg className="w-8 h-8 transform -rotate-90" viewBox="0 0 32 32">
-                      <circle
-                        cx="16"
-                        cy="16"
-                        r="14"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        className="text-border"
-                      />
-                      <circle
-                        cx="16"
-                        cy="16"
-                        r="14"
-                        fill="none"
-                        strokeWidth="2"
-                        strokeDasharray={`${Math.PI * 28}`}
-                        strokeDashoffset={`${Math.PI * 28 * (remainingChars / 500)}`}
-                        strokeLinecap="round"
-                        className={
-                          isOverLimit
-                            ? "stroke-destructive"
-                            : isNearLimit
-                            ? "stroke-sun-yellow"
-                            : "stroke-primary"
-                        }
-                      />
-                    </svg>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
 
+              {/* Submit Button */}
               <Button
-                onClick={handleSubmit}
-                disabled={!content.trim() || isOverLimit || createPostMutation.isPending}
-                className="nature-button"
+                type="submit"
+                disabled={isSubmitting || !content.trim() || !contentValidation.isValid}
+                className={`bg-primary hover:bg-primary/90 ${
+                  isMobile ? 'w-full' : ''
+                }`}
               >
-                {createPostMutation.isPending ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin mr-2" />
-                    Sharing...
-                  </>
+                {isSubmitting ? (
+                  "Posting..."
                 ) : (
                   <>
-                    <Sprout className="w-4 h-4 mr-2" />
-                    {replyToId ? "Reply" : "Share"}
+                    <Send className="w-4 h-4 mr-2" />
+                    {replyTo ? "Reply" : "Post"}
                   </>
                 )}
               </Button>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+
+          {/* Content Guidelines Reminder */}
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start space-x-2">
+              <Info className="h-4 w-4 text-blue-500 mt-0.5" />
+              <div className="text-xs text-blue-700">
+                <p className="font-medium mb-1">Remember: Keep posts focused on agriculture and environment!</p>
+                <p>Share your plant care experiences, gardening tips, environmental thoughts, or sustainability practices. Avoid unrelated topics like politics, entertainment, or personal drama.</p>
+              </div>
+            </div>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

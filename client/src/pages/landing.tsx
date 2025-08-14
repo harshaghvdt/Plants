@@ -1,8 +1,110 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Leaf, Users, MessageSquare, Heart, Share, Search, Sprout, TreePine, Flower, Sun } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Leaf, Users, MessageSquare, Heart, Share, Search, Sprout, TreePine, Flower, Sun, Phone, User, GraduationCap, LeafIcon, UserCheck } from "lucide-react";
+import { useLogin, useVerifyLoginOTP, useRegister, useSendOTP } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Landing() {
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
+  const [accountType, setAccountType] = useState("");
+  const [step, setStep] = useState<'phone' | 'otp' | 'details'>('phone');
+
+  const { toast } = useToast();
+  const sendOTPMutation = useSendOTP();
+  const loginMutation = useLogin();
+  const verifyLoginOTPMutation = useVerifyLoginOTP();
+  const registerMutation = useRegister();
+
+  const handleSendOTP = async (isRegistration = false) => {
+    if (!phone) {
+      toast({
+        title: "Phone Required",
+        description: "Please enter your phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isRegistration) {
+      await sendOTPMutation.mutateAsync({ phone });
+      setStep('otp');
+    } else {
+      await loginMutation.mutateAsync({ phone });
+      setStep('otp');
+    }
+  };
+
+  const handleVerifyOTP = async (isRegistration = false) => {
+    if (!otp) {
+      toast({
+        title: "OTP Required",
+        description: "Please enter the OTP sent to your phone",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isRegistration) {
+      setStep('details');
+    } else {
+      await verifyLoginOTPMutation.mutateAsync({ phone, otp });
+      setIsLoginOpen(false);
+      setStep('phone');
+      setPhone("");
+      setOtp("");
+    }
+  };
+
+  const handleRegister = async () => {
+    if (!firstName || !lastName || !username || !accountType) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await registerMutation.mutateAsync({
+      phone,
+      otp,
+      firstName,
+      lastName,
+      username,
+      accountType,
+    });
+
+    setIsRegisterOpen(false);
+    setStep('phone');
+    setPhone("");
+    setOtp("");
+    setFirstName("");
+    setLastName("");
+    setUsername("");
+    setAccountType("");
+  };
+
+  const resetForm = () => {
+    setStep('phone');
+    setPhone("");
+    setOtp("");
+    setFirstName("");
+    setLastName("");
+    setUsername("");
+    setAccountType("");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-accent to-secondary/30 relative overflow-hidden">
       {/* Decorative background elements */}
@@ -31,12 +133,240 @@ export default function Landing() {
               </div>
               <span className="text-xl font-bold heading-organic text-foreground">PlantLife</span>
             </div>
-            <Button 
-              onClick={() => window.location.href = '/api/login'}
-              className="nature-button"
-            >
-              Join Garden
-            </Button>
+            <div className="flex space-x-3">
+              <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+                    <Phone className="h-4 w-4 mr-2" />
+                    Sign In
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="text-center">Sign In to PlantLife</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    {step === 'phone' && (
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="login-phone">Phone Number</Label>
+                          <Input
+                            id="login-phone"
+                            type="tel"
+                            placeholder="+1234567890"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                        <Button 
+                          onClick={() => handleSendOTP(false)}
+                          disabled={sendOTPMutation.isPending}
+                          className="w-full"
+                        >
+                          {sendOTPMutation.isPending ? "Sending..." : "Send OTP"}
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {step === 'otp' && (
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="login-otp">OTP Code</Label>
+                          <Input
+                            id="login-otp"
+                            type="text"
+                            placeholder="Enter 6-digit OTP"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            className="mt-1"
+                            maxLength={6}
+                          />
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button 
+                            variant="outline"
+                            onClick={() => setStep('phone')}
+                            className="flex-1"
+                          >
+                            Back
+                          </Button>
+                          <Button 
+                            onClick={() => handleVerifyOTP(false)}
+                            disabled={verifyLoginOTPMutation.isPending}
+                            className="flex-1"
+                          >
+                            {verifyLoginOTPMutation.isPending ? "Verifying..." : "Verify & Sign In"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    onClick={resetForm}
+                    className="nature-button"
+                  >
+                    <Sprout className="h-4 w-4 mr-2" />
+                    Join Garden
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="text-center">Join PlantLife Community</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    {step === 'phone' && (
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="register-phone">Phone Number</Label>
+                          <Input
+                            id="register-phone"
+                            type="tel"
+                            placeholder="+1234567890"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                        <Button 
+                          onClick={() => handleSendOTP(true)}
+                          disabled={sendOTPMutation.isPending}
+                          className="w-full"
+                        >
+                          {sendOTPMutation.isPending ? "Sending..." : "Send OTP"}
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {step === 'otp' && (
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="register-otp">OTP Code</Label>
+                          <Input
+                            id="register-otp"
+                            type="text"
+                            placeholder="Enter 6-digit OTP"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            className="mt-1"
+                            maxLength={6}
+                          />
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button 
+                            variant="outline"
+                            onClick={() => setStep('phone')}
+                            className="flex-1"
+                          >
+                            Back
+                          </Button>
+                          <Button 
+                            onClick={() => handleVerifyOTP(true)}
+                            disabled={verifyLoginOTPMutation.isPending}
+                            className="flex-1"
+                          >
+                            {verifyLoginOTPMutation.isPending ? "Verifying..." : "Verify OTP"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {step === 'details' && (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label htmlFor="firstName">First Name</Label>
+                            <Input
+                              id="firstName"
+                              value={firstName}
+                              onChange={(e) => setFirstName(e.target.value)}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="lastName">Last Name</Label>
+                            <Input
+                              id="lastName"
+                              value={lastName}
+                              onChange={(e) => setLastName(e.target.value)}
+                              className="mt-1"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="username">Username</Label>
+                          <Input
+                            id="username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            className="mt-1"
+                            placeholder="Choose a unique username"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="accountType">Account Type</Label>
+                          <Select value={accountType} onValueChange={setAccountType}>
+                            <SelectTrigger className="mt-1">
+                              <SelectValue placeholder="Select your account type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="student">
+                                <div className="flex items-center space-x-2">
+                                  <GraduationCap className="h-4 w-4" />
+                                  <span>Student</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="farmer">
+                                <div className="flex items-center space-x-2">
+                                  <LeafIcon className="h-4 w-4" />
+                                  <span>Farmer</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="enthusiast">
+                                <div className="flex items-center space-x-2">
+                                  <User className="h-4 w-4" />
+                                  <span>Plant Enthusiast</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="professor_scientist">
+                                <div className="flex items-center space-x-2">
+                                  <UserCheck className="h-4 w-4" />
+                                  <span>Professor/Scientist</span>
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="flex space-x-2">
+                          <Button 
+                            variant="outline"
+                            onClick={() => setStep('otp')}
+                            className="flex-1"
+                          >
+                            Back
+                          </Button>
+                          <Button 
+                            onClick={handleRegister}
+                            disabled={registerMutation.isPending}
+                            className="flex-1"
+                          >
+                            {registerMutation.isPending ? "Creating Account..." : "Create Account"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </div>
       </header>
@@ -56,7 +386,7 @@ export default function Landing() {
               <div className="space-y-4 sm:space-y-0 sm:space-x-4 sm:flex">
                 <Button 
                   size="lg"
-                  onClick={() => window.location.href = '/api/login'}
+                  onClick={() => setIsRegisterOpen(true)}
                   className="nature-button w-full sm:w-auto px-8 py-4"
                 >
                   <Sprout className="w-5 h-5 mr-2" />
@@ -171,7 +501,7 @@ export default function Landing() {
             </p>
             <Button 
               size="lg"
-              onClick={() => window.location.href = '/api/login'}
+              onClick={() => setIsRegisterOpen(true)}
               className="bg-white text-primary hover:bg-white/90 px-8 py-4 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200"
             >
               <Sprout className="w-6 h-6 mr-2" />

@@ -130,7 +130,7 @@ export default function Tweet() {
 
             {/* Reply Composer */}
             <div className="border-b border-twitter-border">
-              <TweetComposer replyToId={tweet.id} placeholder={`Reply to @${tweet.author.username}`} />
+              <TweetComposer replyTo={tweet.id} placeholder={`Reply to @${tweet.author.username}`} />
             </div>
 
             {/* Replies */}
