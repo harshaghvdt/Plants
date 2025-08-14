@@ -16,8 +16,7 @@ import {
   reviewVerificationRequest, 
   getVerificationStatus 
 } from './verification';
-import { WebSocketServer } from 'ws';
-import { createServer } from 'http';
+
 
 export async function registerRoutes(app: express.Application) {
   // Health check
@@ -266,8 +265,8 @@ export async function registerRoutes(app: express.Application) {
     console.log("WebSocket server ready");
   });
 
-  const WebSocket = require("ws");
-  const wss = new WebSocket.Server({ server });
+  const { WebSocketServer } = await import("ws");
+  const wss = new WebSocketServer({ server });
 
   wss.on("connection", (ws: any) => {
     console.log("New WebSocket connection");
@@ -279,7 +278,7 @@ export async function registerRoutes(app: express.Application) {
         
         // Broadcast to all connected clients
         wss.clients.forEach((client: any) => {
-          if (client !== ws && client.readyState === WebSocket.OPEN) {
+          if (client !== ws && client.readyState === 1) { // 1 = OPEN state
             client.send(JSON.stringify(data));
           }
         });

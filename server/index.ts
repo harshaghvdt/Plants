@@ -2,9 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { registerRoutes } from './routes';
+import { setupVite, serveStatic } from './vite';
+import { createServer } from 'http';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
@@ -21,14 +23,23 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Register routes
-registerRoutes(app);
-
 // Start server
 async function startServer() {
   try {
-    const server = await registerRoutes(app);
-    app.listen(PORT, () => {
+    // Register API routes first
+    await registerRoutes(app);
+    
+    // Create HTTP server
+    const server = createServer(app);
+    
+    // Setup Vite in development or serve static files in production
+    if (process.env.NODE_ENV === 'production') {
+      serveStatic(app);
+    } else {
+      await setupVite(app, server);
+    }
+    
+    server.listen(Number(PORT), '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🔗 Health check: http://localhost:${PORT}/health`);
