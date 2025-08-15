@@ -1,14 +1,14 @@
 import express from 'express';
-import { isAuthenticated } from './auth';
 import { storage } from './storage';
 import { 
+  isAuthenticated,
   sendOTP, 
   verifyOTPAndRegister, 
   login, 
   verifyLoginOTP, 
   logout, 
   getCurrentUser 
-} from './auth';
+} from './firebase-auth';
 import { 
   submitVerificationRequest, 
   getUserVerificationRequests, 

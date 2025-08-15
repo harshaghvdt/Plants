@@ -1,6 +1,8 @@
 # Overview
 
-This is PlantLife - a full-stack plant social network application built with React, TypeScript, and Express.js. Originally a Twitter clone, it has been completely transformed into a botanical community platform where plant enthusiasts share care experiences, growth stories, and cultivate knowledge together. The application features Material Design 3's expressive design language with a nature-inspired botanical theme, avoiding copyright issues while providing an authentic plant community experience.
+This is PlantLife - a full-stack plant social network application built with React, TypeScript, and Express.js. Originally a Twitter clone, it has been completely transformed into a botanical community platform where plant enthusiasts share care experiences, growth stories, and cultivate knowledge together. The application features Material Design 3's expressive design language with a nature-inspired botanical theme.
+
+**Current Status**: Successfully migrated from Replit Agent to standard Replit environment. Currently undergoing Firebase migration from PostgreSQL for improved scalability and real-time features.
 
 # User Preferences
 
@@ -23,12 +25,13 @@ Preferred communication style: Simple, everyday language.
 - **Error Handling**: Centralized error middleware with proper HTTP status codes
 - **WebSocket Server**: Real-time bidirectional communication for live updates
 
-## Database & ORM
-- **Database**: PostgreSQL with Neon serverless driver for cloud deployment  
-- **ORM**: Drizzle ORM with TypeScript schema definitions for type-safe database operations
-- **Schema**: Plant community schema including users, posts (formerly tweets), follows, likes, shares (formerly retweets), and notifications tables
-- **Migrations**: Drizzle Kit for database schema migrations and management
-- **Schema Transformation**: Successfully migrated from Twitter terminology (tweets, retweets) to plant terminology (posts, shares)
+## Database & Storage
+- **Database**: Firebase Firestore (migrating from PostgreSQL) for scalable NoSQL storage
+- **Real-time**: Firebase real-time database capabilities for live updates
+- **Storage**: Firebase Storage for handling media files and assets
+- **Authentication**: Firebase Auth with phone number verification
+- **Schema**: Plant community schema including users, posts, follows, likes, shares, and notifications
+- **Transition**: Currently using in-memory storage during Firebase package installation
 
 ## Authentication & Sessions
 - **Authentication Provider**: Replit Auth using OpenID Connect (OIDC) for secure user authentication
