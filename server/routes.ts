@@ -24,6 +24,14 @@ export async function registerRoutes(app: express.Application) {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
+  // Authentication routes
+  app.post("/api/auth/send-otp", sendOTP);
+  app.post("/api/auth/verify-otp-register", verifyOTPAndRegister);
+  app.post("/api/auth/login", login);
+  app.post("/api/auth/verify-login-otp", verifyLoginOTP);
+  app.post("/api/auth/logout", logout);
+  app.get("/api/auth/me", isAuthenticated, getCurrentUser);
+
   // Posts (renamed from tweets)
   app.post("/api/posts", isAuthenticated, async (req, res) => {
     try {

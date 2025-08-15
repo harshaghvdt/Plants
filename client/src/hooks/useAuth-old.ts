@@ -20,17 +20,22 @@ interface User {
   createdAt: string;
 }
 
+interface AuthResponse {
+  user: User;
+  token: string;
+}
+
 export function useAuth() {
-  const { data: user, isLoading, error } = useQuery<{ user: User }>({
+  const { data: user, isLoading, error } = useQuery<User>({
     queryKey: ["/api/auth/me"],
     retry: false,
     refetchOnWindowFocus: false,
   });
 
   return {
-    user: user?.user,
+    user,
     isLoading,
-    isAuthenticated: !!user?.user,
+    isAuthenticated: !!user,
     error,
   };
 }
@@ -73,9 +78,9 @@ export function useVerifyLoginOTP() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  return useMutation<{ message: string; user: User }, Error, { phone: string; otp: string }>({
+  return useMutation<AuthResponse, Error, { phone: string; otp: string }>({
     mutationFn: async ({ phone, otp }) => {
-      const response = await fetch('/api/auth/verify-login-otp', {
+      const response = await fetch('/api/auth/verify-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, otp }),
@@ -89,11 +94,15 @@ export function useVerifyLoginOTP() {
       return response.json();
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["/api/auth/me"], { user: data.user });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      // Store token in localStorage for persistence
+      localStorage.setItem('token', data.token);
+      
+      // Invalidate and refetch user data
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
       toast({
         title: "Login Successful",
-        description: "Welcome back!",
+        description: `Welcome back, ${data.user.firstName}!`,
       });
     },
     onError: (error) => {
@@ -106,24 +115,16 @@ export function useVerifyLoginOTP() {
   });
 }
 
-export function useVerifyRegistrationOTP() {
+export function useRegister() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  return useMutation<{ message: string; user: User }, Error, { 
-    phone: string; 
-    otp: string;
-    firstName: string;
-    lastName: string;
-    username: string;
-    accountType: string;
-    email?: string;
-  }>({
-    mutationFn: async (userData) => {
-      const response = await fetch('/api/auth/verify-otp-register', {
+  return useMutation<AuthResponse, Error, { phone: string; otp: string; firstName: string; lastName: string; username: string; accountType: string }>({
+    mutationFn: async (data) => {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData),
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
@@ -134,11 +135,15 @@ export function useVerifyRegistrationOTP() {
       return response.json();
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["/api/auth/me"], { user: data.user });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      // Store token in localStorage for persistence
+      localStorage.setItem('token', data.token);
+      
+      // Invalidate and refetch user data
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
       toast({
         title: "Registration Successful",
-        description: "Welcome to PlantLife!",
+        description: `Welcome to PlantLife, ${data.user.firstName}!`,
       });
     },
     onError: (error) => {
@@ -151,11 +156,45 @@ export function useVerifyRegistrationOTP() {
   });
 }
 
+export function useSendOTP() {
+  const { toast } = useToast();
+
+  return useMutation<void, Error, { phone: string }>({
+    mutationFn: async ({ phone }) => {
+      const response = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to send OTP');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "OTP Sent",
+        description: "Please check your phone for the OTP code",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "OTP Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
 export function useLogout() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  return useMutation<{ message: string }, Error>({
+  return useMutation<void, Error>({
     mutationFn: async () => {
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
@@ -165,10 +204,11 @@ export function useLogout() {
         const error = await response.json();
         throw new Error(error.message || 'Logout failed');
       }
-
-      return response.json();
     },
     onSuccess: () => {
+      // Remove token from localStorage
+      localStorage.removeItem('token');
+      
       // Clear all queries
       queryClient.clear();
       

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Leaf, Users, MessageSquare, Heart, Share, Search, Sprout, TreePine, Flower, Sun, Phone, User, GraduationCap, LeafIcon, UserCheck } from "lucide-react";
-import { useLogin, useVerifyLoginOTP, useRegister, useSendOTP } from "@/hooks/useAuth";
+import { useSendOTP, useVerifyLoginOTP, useVerifyRegistrationOTP } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Landing() {
@@ -22,9 +22,8 @@ export default function Landing() {
 
   const { toast } = useToast();
   const sendOTPMutation = useSendOTP();
-  const loginMutation = useLogin();
-  const verifyLoginOTPMutation = useVerifyLoginOTP();
-  const registerMutation = useRegister();
+  const verifyLoginMutation = useVerifyLoginOTP();
+  const verifyRegistrationMutation = useVerifyRegistrationOTP();
 
   const handleSendOTP = async (isRegistration = false) => {
     if (!phone) {
@@ -36,13 +35,8 @@ export default function Landing() {
       return;
     }
 
-    if (isRegistration) {
-      await sendOTPMutation.mutateAsync({ phone });
-      setStep('otp');
-    } else {
-      await loginMutation.mutateAsync({ phone });
-      setStep('otp');
-    }
+    await sendOTPMutation.mutateAsync({ phone });
+    setStep('otp');
   };
 
   const handleVerifyOTP = async (isRegistration = false) => {
@@ -58,7 +52,7 @@ export default function Landing() {
     if (isRegistration) {
       setStep('details');
     } else {
-      await verifyLoginOTPMutation.mutateAsync({ phone, otp });
+      await verifyLoginMutation.mutateAsync({ phone, otp });
       setIsLoginOpen(false);
       setStep('phone');
       setPhone("");
@@ -76,7 +70,7 @@ export default function Landing() {
       return;
     }
 
-    await registerMutation.mutateAsync({
+    await verifyRegistrationMutation.mutateAsync({
       phone,
       otp,
       firstName,
