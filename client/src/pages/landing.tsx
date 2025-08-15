@@ -187,10 +187,10 @@ export default function Landing() {
                           </Button>
                           <Button 
                             onClick={() => handleVerifyOTP(false)}
-                            disabled={verifyLoginOTPMutation.isPending}
+                            disabled={verifyLoginMutation.isPending}
                             className="flex-1"
                           >
-                            {verifyLoginOTPMutation.isPending ? "Verifying..." : "Verify & Sign In"}
+                            {verifyLoginMutation.isPending ? "Verifying..." : "Verify & Sign In"}
                           </Button>
                         </div>
                       </div>
@@ -261,10 +261,10 @@ export default function Landing() {
                           </Button>
                           <Button 
                             onClick={() => handleVerifyOTP(true)}
-                            disabled={verifyLoginOTPMutation.isPending}
+                            disabled={verifyRegistrationMutation.isPending}
                             className="flex-1"
                           >
-                            {verifyLoginOTPMutation.isPending ? "Verifying..." : "Verify OTP"}
+                            {verifyRegistrationMutation.isPending ? "Verifying..." : "Verify OTP"}
                           </Button>
                         </div>
                       </div>
@@ -349,10 +349,10 @@ export default function Landing() {
                           </Button>
                           <Button 
                             onClick={handleRegister}
-                            disabled={registerMutation.isPending}
+                            disabled={verifyRegistrationMutation.isPending}
                             className="flex-1"
                           >
-                            {registerMutation.isPending ? "Creating Account..." : "Create Account"}
+                            {verifyRegistrationMutation.isPending ? "Creating Account..." : "Create Account"}
                           </Button>
                         </div>
                       </div>
